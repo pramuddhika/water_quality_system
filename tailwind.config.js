@@ -6,6 +6,9 @@ export default {
   ],
   theme: {
     extend: {},
+    width: {
+      'calc': 'calc(100% - 180px)',
+    }
   },
   plugins: [],
 }
