@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import image1 from "./assets/image1.png";
 
 const LogIn = () => {
