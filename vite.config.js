@@ -6,5 +6,8 @@ export default defineConfig(({ mode }) => {
   return {
     base: mode === 'production' ? '/water_quality_system/' : '/',
     plugins: [react()],
+    build: {
+      chunkSizeWarningLimit: 1600,
+    },
   }
 });
