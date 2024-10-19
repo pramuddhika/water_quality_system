@@ -1,14 +1,34 @@
-
+import { NavLink } from 'react-router-dom';
 
 const SideNav = () => {
   return (
-    <div className="fixed top-0 left-0 w-[180px] shadow-lg shadow-main bg-side-nav-bg h-screen">
-      <div className="font-inter text-main p-4 mb-8">
-        <p className="flex font-bold text-l justify-center">Water Quality</p>
-        <p className="flex justify-end font-semibold mr-2">System</p>
+    <nav className="flex flex-col h-full p-4 bg-gray-800 text-white">
+      <div className="flex-1">
+        <h1 className="text-xl font-bold">Water Quality</h1>
+        <h2 className="text-sm text-end"> System</h2>
+        <ul>
+          <li className="mt-12 mb-4">
+            <NavLink 
+              to="/dashboard" 
+              className={({ isActive }) => isActive ? "text-blue-300" : "hover:text-gray-300"}
+            >
+              Dashboard
+            </NavLink>
+          </li>
+          <li className="mb-4">
+            <NavLink 
+              to="/data-visualization" 
+              className={({ isActive }) => isActive ? "text-blue-300" : "hover:text-gray-300"}
+            >
+              Data Visualization
+            </NavLink>
+          </li>
+        </ul>
       </div>
-      
-    </div>
+      <div>
+        <NavLink to="/" className="hover:text-gray-300">Logout</NavLink>
+      </div>
+    </nav>
   );
 };
 
