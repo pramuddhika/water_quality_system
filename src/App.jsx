@@ -1,8 +1,8 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 // import LogIn from "./LogIn";
-import Layout from "./Layout/Layout";
-import Dashboard from "./UI/Dashboard";
-import DataVisualization from "./UI/DataVisualization";
+import Layout from "./Layout/Layout.jsx";
+import Dashboard from "./UI/Dashboard.jsx";
+import DataVisualization from "./UI/DataVisualization.jsx";
 
 const router = createBrowserRouter([
   // {
