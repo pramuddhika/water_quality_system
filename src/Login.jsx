@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import image1 from "./assets/image1.png";
 
-const Login = () => {
+const LogIn = () => {
   return (
     <div className="font-[sans-serif] h-screen grid lg:grid-cols-2 md:grid-cols-2 items-center gap-4">
       <div className="order-2 md:order-1 h-screen hidden md:block">
@@ -56,4 +56,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default LogIn;
