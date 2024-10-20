@@ -5,7 +5,7 @@ import SideNav from './SideNav';
 const Layout = () => {
   const location = useLocation();
   // Determine the title based on the current path
-  let title = '';
+  let title = 'Dashboard';
   if (location.pathname === '/dashboard') {
     title = 'Dashboard';
   } else if (location.pathname === '/data-visualization') {
