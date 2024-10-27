@@ -24,22 +24,26 @@ const LogIn = () => {
         </div>
 
         <div className="order-1 md:order-2 p-8">
-          <div className="mb-6">
+          <div className="text-center font-bold mb-4">
+            <h1 className="text-3xl text-blue-500">Water Quality</h1>
+            <h3 className="text-end mr-10 lg:mr-64 md:mr-12 text-blue-400">System</h3>
+          </div>
+          <div className="mb-6 lg:ml-40">
             <h2 className="text-2xl font-bold">Welcome Back</h2>
             <p className="text-gray-500">Login to your account</p>
           </div>
 
-          <form>
+          <form className="lg:mr-40 lg:ml-40">
             <div className="mb-4">
-              <label htmlFor="email" className="text-sm">
-                Email
+              <label htmlFor="userName" className="text-sm">
+                User Name
               </label>
               <input
-                type="email"
-                id="email"
-                className="border border-gray-200 rounded-lg p-2 w-full mt-1"
-                placeholder="Enter your email"
-                aria-label="Email"
+                type="text"
+                id="userName"
+                className="border border-gray-200 rounded-lg p-2 w-full mt-1 focus:outline-none"
+                placeholder="Enter your user name"
+                aria-label="User Name"
               />
             </div>
 
@@ -50,7 +54,7 @@ const LogIn = () => {
               <input
                 type="password"
                 id="password"
-                className="border border-gray-200 rounded-lg p-2 w-full mt-1"
+                className="border border-gray-200 rounded-lg p-2 w-full mt-1 focus:outline-none"
                 placeholder="Enter your password"
                 aria-label="Password"
               />
@@ -58,7 +62,7 @@ const LogIn = () => {
 
             <div>
               <button
-                className="bg-blue-500 text-white w-full py-2 rounded-lg"
+                className="bg-blue-500 text-white w-full py-2 rounded-lg hover:bg-blue-900"
                 onClick={handleLogin}
               >
                 Login

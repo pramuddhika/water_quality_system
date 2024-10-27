@@ -2,14 +2,15 @@ import { useEffect, useState } from "react";
 import { database } from "./firebase";
 import { ref, get } from "firebase/database";
 import Chart from "chart.js/auto";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
 
 const DataVisualization = () => {
   const [devices, setDevices] = useState([]);
   const [selectedDevice, setSelectedDevice] = useState(null);
   const [sensorData, setSensorData] = useState({});
-  const [loading, setLoading] = useState(false); // Add loading state
+  const [loading, setLoading] = useState(false);
 
-  // Fetch devices from Firebase
   useEffect(() => {
     const fetchDevices = async () => {
       const deviceRef = ref(database, "devices");
@@ -21,37 +22,31 @@ const DataVisualization = () => {
     fetchDevices();
   }, []);
 
-  // Handle device selection
   const handleDeviceSelect = async (e) => {
     const deviceKey = e.target.value;
-
-    // Reset states and set loading to true
     setLoading(true);
     setSelectedDevice(null);
     setSensorData({});
 
-    // Delay before fetching new device data
     setTimeout(async () => {
       if (deviceKey) {
         const selected = devices[deviceKey];
         setSelectedDevice(selected);
         setSensorData(selected.sensor_data);
       }
-      setLoading(false); // Reset loading state
-    }, 1000); // Adjust the delay as necessary
+      setLoading(false);
+    }, 1000);
   };
 
-  let charts = {}; // Store chart instances
+  let charts = {};
 
   const renderChart = (canvasId, data, label) => {
-    // Check if a chart instance already exists and destroy it
     if (charts[canvasId]) {
       charts[canvasId].destroy();
     }
 
     const ctx = document.getElementById(canvasId).getContext("2d");
 
-    // Create a new chart instance and store it in the charts object
     charts[canvasId] = new Chart(ctx, {
       type: "line",
       data: {
@@ -80,7 +75,6 @@ const DataVisualization = () => {
     }
   }, [sensorData]);
 
-  // Calculate averages
   const calculateAverage = (data) => {
     if (!data || Object.keys(data).length === 0) return 0;
     const total = Object.values(data).reduce((sum, value) => sum + value, 0);
@@ -90,6 +84,9 @@ const DataVisualization = () => {
   const averagePh = calculateAverage(sensorData.ph);
   const averageTds = calculateAverage(sensorData.tds);
   const averageTurbidity = calculateAverage(sensorData.turbidity);
+
+  // Parse location data into latitude and longitude
+  const [lat, lon] = selectedDevice?.location.split(",").map((coord) => parseFloat(coord)) || [];
 
   return (
     <div className="p-4">
@@ -106,14 +103,13 @@ const DataVisualization = () => {
         ))}
       </select>
 
-      {loading ? ( // Display loading indicator while fetching data
+      {loading ? (
         <div className="flex justify-center items-center h-32">
-          <div className="loader">Loading...</div> {/* You can replace this with a spinner */}
+          <div className="loader">Loading...</div>
         </div>
       ) : (
         selectedDevice && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Left Side: Device Info and Averages */}
             <div className="border p-4 rounded shadow-lg">
               <h2 className="text-xl font-semibold">Sensor Information</h2>
               <div className="flex items-center justify-between mt-2">
@@ -145,17 +141,29 @@ const DataVisualization = () => {
                   <span>{averageTurbidity}</span>
                 </div>
               </div>
+              <div className="mt-4">
+                {lat && lon && (
+                  <MapContainer center={[lat, lon]} zoom={13} style={{ height: "330px", width: "100%" }}>
+                    <TileLayer
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
+                    />
+                    <Marker position={[lat, lon]}>
+                      <Popup>Device Location: {selectedDevice.location}</Popup>
+                    </Marker>
+                  </MapContainer>
+                )}
+              </div>
             </div>
 
-            {/* Right Side: All Charts */}
             <div className="flex flex-col gap-4">
-              <div className="bg-red-200 p-2 rounded h-1/4">
+              <div className="bg-red-200 p-2 rounded" style={{ height: '190px' }}>
                 <canvas id="phChart"></canvas>
               </div>
-              <div className="bg-green-200 p-2 rounded h-1/4">
+              <div className="bg-green-200 p-2 rounded" style={{ height: '190px' }}>
                 <canvas id="tdsChart"></canvas>
               </div>
-              <div className="bg-blue-200 p-2 rounded h-1/2">
+              <div className="bg-blue-200 p-2 rounded" style={{ height: '190px' }}>
                 <canvas id="turbidityChart"></canvas>
               </div>
             </div>
