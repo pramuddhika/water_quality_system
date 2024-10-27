@@ -6,6 +6,7 @@ import Chart from "chart.js/auto";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import Select from "react-select";
 import "leaflet/dist/leaflet.css";
+import L from 'leaflet';
 
 const ComapanyData = () => {
   const [devices, setDevices] = useState([]);
@@ -150,7 +151,8 @@ const ComapanyData = () => {
           <div className="loader">Loading...</div>
         </div>
       ) : (
-        dataFetched && selectedDevices.length > 0 && (
+        dataFetched &&
+        selectedDevices.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <div className="border p-4 rounded shadow-lg">
               <h2 className="text-xl font-semibold">Sensor Information</h2>
@@ -173,15 +175,15 @@ const ComapanyData = () => {
               </div>
               <div className="mt-4">
                 <MapContainer
-                  center={[20.5937, 78.9629]} 
-                  zoom={5} 
+                  center={[20.5937, 78.9629]}
+                  zoom={5}
                   style={{ height: "330px", width: "100%" }}
                 >
                   <TileLayer
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
                   />
-                  <DeviceMarkers 
+                  <DeviceMarkers
                     selectedDevices={selectedDevices}
                     devices={devices}
                   />
@@ -216,36 +218,47 @@ const ComapanyData = () => {
   );
 };
 
+const customIcon = new L.Icon({
+  iconUrl: 'https://img.icons8.com/color/48/map-pin.png',
+  iconSize: [48, 48], 
+  iconAnchor: [24, 48],
+  popupAnchor: [0, -48]
+});
+
 const DeviceMarkers = ({ selectedDevices, devices }) => {
-  const map = useMap(); 
+  const map = useMap();
 
   useEffect(() => {
     if (selectedDevices.length) {
       const bounds = [];
 
       selectedDevices.forEach((deviceKey) => {
-        const [lat, lon] = devices[deviceKey].location
-          .split(",")
-          .map((coord) => parseFloat(coord));
-        bounds.push([lat, lon]);
+        const location = devices[deviceKey]?.location; 
+        if (location) {
+          const [lat, lon] = location.split(",").map((coord) => parseFloat(coord));
+          bounds.push([lat, lon]);
+        }
       });
 
-      map.fitBounds(bounds); 
+      if (bounds.length) {
+        map.fitBounds(bounds); 
+      }
     }
-  }, [selectedDevices, devices, map]); 
+  }, [selectedDevices, devices, map]);
+
   return (
     <>
       {selectedDevices.map((deviceKey) => {
-        const [lat, lon] = devices[deviceKey].location
-          .split(",")
-          .map((coord) => parseFloat(coord));
-        return (
-          <Marker key={deviceKey} position={[lat, lon]}>
-            <Popup>
-              Device Location: {devices[deviceKey].location}
-            </Popup>
-          </Marker>
-        );
+        const location = devices[deviceKey]?.location;
+        if (location) {
+          const [lat, lon] = location.split(",").map((coord) => parseFloat(coord));
+          return (
+            <Marker key={deviceKey} position={[lat, lon]} icon={customIcon}>
+              <Popup>Device Location: {location}</Popup>
+            </Marker>
+          );
+        }
+        return null;
       })}
     </>
   );
