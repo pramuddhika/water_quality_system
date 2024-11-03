@@ -12,6 +12,10 @@ const Layout = () => {
     title = 'Data Visualization';
   } else if (location.pathname === '/company-data') {
     title = 'Company Data';
+  } else if (location.pathname === '/members') {
+    title = 'Member Management';
+  } else if (location.pathname === '/reports') {
+    title = 'Reports';
   }
 
   return (
@@ -21,7 +25,7 @@ const Layout = () => {
       </div>
       
       <div className="flex-1">
-        <TopBar title={title}/>
+        <TopBar title={title} className="h-[60px]"/>
         <div className="p-2">
           <Outlet />
         </div>

@@ -1,42 +1,67 @@
 import { NavLink } from 'react-router-dom';
+import { Navbar, Nav } from 'react-bootstrap';
 
 const SideNav = () => {
   return (
-    <nav className="flex flex-col h-full p-4 bg-gray-800 text-white fixed" style={{ width: "180px" }}>
-      <div className="flex-1">
-        <h1 className="text-base lg:text-xl font-bold">Water Quality</h1>
-        <h2 className="text-sm text-end"> System</h2>
-        <ul>
-          <li className="mt-12 mb-4">
-            <NavLink 
-              to="/dashboard" 
-              className={({ isActive }) => isActive ? "text-blue-300" : "hover:text-gray-300"}
-            >
-              Dashboard
-            </NavLink>
-          </li>
-          <li className="mb-4">
-            <NavLink 
-              to="/data-visualization" 
-              className={({ isActive }) => isActive ? "text-blue-300" : "hover:text-gray-300"}
-            >
-              Data Visualization
-            </NavLink>
-          </li>
-          <li className="mb-4">
-            <NavLink 
-              to="/company-data" 
-              className={({ isActive }) => isActive ? "text-blue-300" : "hover:text-gray-300"}
-            >
-              Comapany Data
-            </NavLink>
-          </li>
-        </ul>
-      </div>
-      <div className="mb-12 flex-row">
-        <NavLink to="/" className="hover:text-gray-300">Logout</NavLink>
-      </div>
-    </nav>
+    <Navbar bg="dark" variant="dark" className="flex-column p-4 text-white position-fixed h-100" style={{ width: "180px" }}>
+      <Navbar.Brand className="mb-4">
+        <h1 className="h5">Water Quality</h1>
+        <h2 className="small">System</h2>
+      </Navbar.Brand>
+
+      <Nav className="flex-column flex-grow-1">
+        <Nav.Item className="my-3">
+          <NavLink 
+            to="/dashboard" 
+            className={({ isActive }) => isActive ? "text-info" : "text-white"}
+          >
+            Dashboard
+          </NavLink>
+        </Nav.Item>
+        
+        <Nav.Item className="my-3">
+          <NavLink 
+            to="/data-visualization" 
+            className={({ isActive }) => isActive ? "text-info" : "text-white"}
+          >
+            Data Visualization
+          </NavLink>
+        </Nav.Item>
+        
+        <Nav.Item className="my-3">
+          <NavLink 
+            to="/company-data" 
+            className={({ isActive }) => isActive ? "text-info" : "text-white"}
+          >
+            Company Data
+          </NavLink>
+        </Nav.Item>
+        
+        <Nav.Item className="my-3">
+          <NavLink 
+            to="/members" 
+            className={({ isActive }) => isActive ? "text-info" : "text-white"}
+          >
+            Members
+          </NavLink>
+        </Nav.Item>
+        
+        <Nav.Item className="my-3">
+          <NavLink 
+            to="/reports" 
+            className={({ isActive }) => isActive ? "text-info" : "text-white"}
+          >
+            Reports
+          </NavLink>
+        </Nav.Item>
+      </Nav>
+
+      <Nav className="mt-auto">
+        <Nav.Item className="my-4">
+          <NavLink to="/" className="text-white">Logout</NavLink>
+        </Nav.Item>
+      </Nav>
+    </Navbar>
   );
 };
 
