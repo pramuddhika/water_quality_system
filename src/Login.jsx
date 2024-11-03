@@ -58,10 +58,10 @@ const LogIn = () => {
         });
 
         if (!userFound) {
-          toast.error("User not found");
+          toast.error("Incorrect Login Credentials");
         }
       } else {
-        toast.error("No users found in the database");
+        toast.error("Incorrect Login Credentials");
       }
     } catch (error) {
       console.error("Login error:", error);
