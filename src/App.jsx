@@ -1,6 +1,6 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import 'bootstrap/dist/css/bootstrap.min.css';
-import LogIn from "./LogIn.jsx";
+import LogIn from "./Login.jsx";
 import Layout from "./Layout/Layout.jsx";
 import Dashboard from "./UI/Dashboard.jsx";
 import DataVisualization from "./UI/DataVisualization.jsx";
