@@ -40,6 +40,19 @@ const SideNav = () => {
           </Nav.Item>
         )}
 
+        {currentUser.role === "Client" && (
+          <Nav.Item className="my-3">
+            <NavLink
+              to="/sensor-data"
+              className={({ isActive }) =>
+                isActive ? "text-info" : "text-white"
+              }
+            >
+              Sensor Data
+            </NavLink>
+          </Nav.Item>
+        )}
+
         <Nav.Item className="my-3">
           <NavLink
             to="/data-visualization"
@@ -47,18 +60,7 @@ const SideNav = () => {
               isActive ? "text-info" : "text-white"
             }
           >
-            Data Visualization
-          </NavLink>
-        </Nav.Item>
-
-        <Nav.Item className="my-3">
-          <NavLink
-            to="/company-data"
-            className={({ isActive }) =>
-              isActive ? "text-info" : "text-white"
-            }
-          >
-            Company Data
+            DataVisualization
           </NavLink>
         </Nav.Item>
 

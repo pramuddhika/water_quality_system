@@ -10,12 +10,12 @@ const Layout = () => {
     title = 'Dashboard';
   } else if (location.pathname === '/data-visualization') {
     title = 'Data Visualization';
-  } else if (location.pathname === '/company-data') {
-    title = 'Company Data';
   } else if (location.pathname === '/members') {
     title = 'Member Management';
   } else if (location.pathname === '/reports') {
     title = 'Reports';
+  } else if (location.pathname === '/sensor-data') {
+    title = 'Sensor Data';
   }
 
   return (

@@ -44,12 +44,10 @@ const LogIn = () => {
                 if (userData.role === "Admin") {
                   navigate("/dashboard");
                 } else if (userData.role === "Client") {
-                  navigate("/data-visualization");
+                  navigate("/sensor-data");
                 }
             
                 setTimeout(() => {
-                  // Optionally, if you want a delay before navigating, keep this
-                  // navigate("/dashboard"); // This will be replaced with role-based navigation
                 }, 3000);
               }
             } else {
