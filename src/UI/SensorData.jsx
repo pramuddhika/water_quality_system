@@ -2,9 +2,20 @@ import { useState, useEffect } from "react";
 import { ref, get, child } from "firebase/database";
 import { database } from "./firebase";
 import Table from "react-bootstrap/Table";
+import Modal from "react-bootstrap/Modal";
+import Button from "react-bootstrap/Button";
+import { MapContainer, TileLayer, Marker } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+
+const parseCoordinates = (coordinates) => {
+  const [lat, lon] = coordinates.split(",");
+  return { lat: parseFloat(lat), lon: parseFloat(lon) };
+};
 
 const SensorData = () => {
   const [devices, setDevices] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [location, setLocation] = useState({ lat: 0, lon: 0 });
   const userData = localStorage.getItem("userData");
   const currentUser = JSON.parse(userData);
 
@@ -25,56 +36,56 @@ const SensorData = () => {
   };
 
   useEffect(() => {
-    const fetchDevices = async () => {
-      const dbRef = ref(database);
-      try {
-        const snapshot = await get(child(dbRef, "devices"));
-        
-        if (snapshot.exists()) {
-          const devicesData = snapshot.val();
-          const clientDevices = [];
+  const fetchDevices = async () => {
+    const dbRef = ref(database);
+    try {
+      const snapshot = await get(child(dbRef, "devices"));
+      if (snapshot.exists()) {
+        const devicesData = snapshot.val();
+        const clientDevices = [];
 
-          // Iterate through each device to find if the client exists and get formatted dates, times, and coordinates
-          for (const [deviceId, clients] of Object.entries(devicesData)) {
-            if (currentUser.username in clients) {
-              const datesData = clients[currentUser.username];
+        for (const [deviceId, clients] of Object.entries(devicesData)) {
+          if (currentUser.username in clients) {
+            const datesData = clients[currentUser.username];
 
-              const formattedDates = Object.keys(datesData).map(dateKey => {
+            // Sort dates in descending order
+            const sortedDates = Object.keys(datesData)
+              .sort((a, b) => new Date(b) - new Date(a)) // Parse date strings for sorting
+              .map(dateKey => {
                 const formattedDate = formatDate(dateKey);
                 const timesData = datesData[dateKey];
 
-                const times = Object.entries(timesData).map(([time, timeDetails]) => {
-                  const { location: { coordinates } = {} } = timeDetails;
-                  return { time: formatTime(time), coordinates };
-                });
+                // Sort times in descending order
+                const sortedTimes = Object.entries(timesData)
+                  .sort(([timeA], [timeB]) => timeB.localeCompare(timeA))
+                  .map(([time, timeDetails]) => {
+                    const { location: { coordinates } = {} } = timeDetails;
+                    return { time: formatTime(time), coordinates };
+                  });
 
-                return { date: formattedDate, times };
+                return { date: formattedDate, times: sortedTimes };
               });
 
-              clientDevices.push({ deviceId, dates: formattedDates });
-            }
+            clientDevices.push({ deviceId, dates: sortedDates });
           }
-
-          // Update the local state and store the result in localStorage
-          setDevices(clientDevices);
-
-          // Add devices with formatted dates and times to userData and store it back in localStorage
-          const updatedUserData = { ...currentUser, devices: clientDevices };
-          localStorage.setItem("userData", JSON.stringify(updatedUserData));
-        } else {
-          console.log("No data available");
         }
-      } catch (error) {
-        console.error("Error fetching devices: ", error);
+
+        setDevices(clientDevices);
+        const updatedUserData = { ...currentUser, devices: clientDevices };
+        localStorage.setItem("userData", JSON.stringify(updatedUserData));
       }
-    };
+    } catch (error) {
+      console.error("Error fetching devices: ", error);
+    }
+  };
+  fetchDevices();
+}, [currentUser.username]);
 
-    fetchDevices();
-  }, [currentUser.username]);
 
-  // Function to handle clicking the eye button
   const handleViewLocation = (coordinates) => {
-    console.log("Selected location coordinates:", coordinates);
+    const parsedLocation = parseCoordinates(coordinates);
+    setLocation(parsedLocation);
+    setShowModal(true);
   };
 
   return (
@@ -94,7 +105,7 @@ const SensorData = () => {
           readOnly
         />
       </div>
-      
+
       <div className="mt-10">
         <p className="font-bold mb-3">Device Usage Summary</p>
         <div className="table-responsive">
@@ -108,8 +119,8 @@ const SensorData = () => {
               </tr>
             </thead>
             <tbody>
-              {devices.map(device => (
-                device.dates.map(date => (
+              {devices.map(device =>
+                device.dates.map(date =>
                   date.times.map(time => (
                     <tr key={`${device.deviceId}-${date.date}-${time.time}`}>
                       <td>{device.deviceId}</td>
@@ -118,20 +129,44 @@ const SensorData = () => {
                       <td className="flex justify-between">
                         {time.coordinates}
                         <button
-                          className="text-end mr-3"
                           onClick={() => handleViewLocation(time.coordinates)}
+                          className="text-end ml-2"
                         >
                           <i className="bi bi-eye"></i>
                         </button>
                       </td>
                     </tr>
                   ))
-                ))
-              ))}
+                )
+              )}
             </tbody>
           </Table>
         </div>
       </div>
+
+      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Device Location</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <MapContainer
+            center={[location.lat, location.lon]}
+            zoom={13}
+            style={{ height: "400px", width: "100%" }}
+          >
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a>'
+            />
+            <Marker position={[location.lat, location.lon]} />
+          </MapContainer>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowModal(false)}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 };
