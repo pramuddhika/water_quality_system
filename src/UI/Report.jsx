@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Select from 'react-select';
 import { Button, Container, Row, Col } from 'react-bootstrap';
 import { ToastContainer, toast } from 'react-toastify';
+import { getDatabase, ref, get } from "firebase/database";
 import 'react-toastify/dist/ReactToastify.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
@@ -69,24 +70,81 @@ const Reports = () => {
         }
     };
 
-    const handleGetData = () => {
-        if (selectedLocations.length === 0) {
-            toast.warning("Please select at least one location.");
-        } else if (selectedDates.length === 0) {
-            toast.warning("Please select at least one date.");
-        } else {
-            // Format data for the POST request
-            const requestData = {
-                clientName: clientName,
-                selectedLocations: selectedLocations.map(location => location.value),
-                selectedDates: selectedDates.map(date => date.value),
-            };
+    const handleGetData = async () => {
+    if (selectedLocations.length === 0) {
+        toast.warning("Please select at least one location.");
+    } else if (selectedDates.length === 0) {
+        toast.warning("Please select at least one date.");
+    } else {
+        // Convert selected dates to YYYYMMDD format
+        const formattedDates = selectedDates.map(date => date.value.replace(/-/g, ''));
 
-            // Log final formatted data for POST request
-            console.log(requestData);
+        const db = getDatabase();
+        const devicesRef = ref(db, 'devices');
 
+        try {
+            const snapshot = await get(devicesRef);
+            if (snapshot.exists()) {
+                const devicesData = snapshot.val();
+                const matchingDevices = [];
+
+                // Iterate through devices to find matches
+                Object.keys(devicesData).forEach(deviceId => {
+                    const device = devicesData[deviceId];
+                    const deviceMatches = {
+                        deviceId: deviceId,
+                        dates: []
+                    };
+
+                    Object.keys(device).forEach(clientId => {
+                        if (clientId === clientName) {
+                            formattedDates.forEach(date => {
+                                if (device[clientId][date]) {
+                                    const dateEntry = {
+                                        date: `${date.slice(0, 4)}.${date.slice(4, 6)}.${date.slice(6, 8)}`,
+                                        locations: []
+                                    };
+
+                                    Object.keys(device[clientId][date]).forEach(time => {
+                                        const entry = device[clientId][date][time];
+
+                                        if (selectedLocations.some(location => location.value === entry.location.coordinates)) {
+                                            dateEntry.locations.push({
+                                                time: time,
+                                                coordinates: entry.location.coordinates,
+                                                sensorData: entry.sensor_data
+                                            });
+                                        }
+                                    });
+
+                                    // Only add the date if there are matching locations
+                                    if (dateEntry.locations.length > 0) {
+                                        deviceMatches.dates.push(dateEntry);
+                                    }
+                                }
+                            });
+                        }
+                    });
+
+                    // Only add the device if there are matching dates
+                    if (deviceMatches.dates.length > 0) {
+                        matchingDevices.push(deviceMatches);
+                    }
+                });
+
+                // Log matching device data to the console
+                console.log("Matching device data:", matchingDevices);
+            } else {
+                console.log("No data available");
+            }
+        } catch (error) {
+            console.error("Error fetching data:", error);
+            toast.error("Error fetching data.");
         }
-    };
+    }
+};
+
+    
 
     return (
         <Container className="mt-4">
