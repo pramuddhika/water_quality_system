@@ -146,8 +146,6 @@ const Reports = () => {
                                                             });
                                                         });
                                                     }
-                                                } else {
-                                                    console.warn("No sensor_data found in entry:", entry);
                                                 }
     
                                                 dateEntry.locations.push({
@@ -173,8 +171,8 @@ const Reports = () => {
                         }
                     });
     
-                    // Log matching device data with structured sensor readings to the console
-                    console.log("Matching device data with structured sensor readings:", matchingDevices);
+                    // Convert matchingDevices to CSV and download
+                    exportToCSV(matchingDevices);
                 } else {
                     console.log("No data available");
                 }
@@ -184,6 +182,55 @@ const Reports = () => {
             }
         }
     };
+    
+    // Helper function to convert data to CSV and trigger download
+    const exportToCSV = (data) => {
+        const csvRows = [];
+    
+        // Define headers
+        csvRows.push("Device ID,Date,Time,Coordinates,Coordinates,PH Time,PH Value,TDS Time,TDS Value,Turbidity Time,Turbidity Value");
+    
+        // Loop through data to format each row
+        data.forEach(device => {
+            device.dates.forEach(dateEntry => {
+                dateEntry.locations.forEach(location => {
+                    const { time, coordinates, sensorData } = location;
+    
+                    // Generate rows for each sensor data type
+                    const maxLength = Math.max(sensorData.ph.length, sensorData.tds.length, sensorData.turbidity.length);
+                    for (let i = 0; i < maxLength; i++) {
+                        const ph = sensorData.ph[i] || { time: "", value: "" };
+                        const tds = sensorData.tds[i] || { time: "", value: "" };
+                        const turbidity = sensorData.turbidity[i] || { time: "", value: "" };
+    
+                        csvRows.push([
+                            device.deviceId,
+                            dateEntry.date,
+                            time,
+                            coordinates,
+                            ph.time, ph.value,
+                            tds.time, tds.value,
+                            turbidity.time, turbidity.value
+                        ].join(","));
+                    }
+                });
+            });
+        });
+    
+        // Convert rows to a single CSV string
+        const csvContent = csvRows.join("\n");
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+    
+        // Create a download link and click it programmatically
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "sensor_data.csv";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+    
     
     
     
