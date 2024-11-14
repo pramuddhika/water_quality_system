@@ -1,266 +1,359 @@
-/* eslint-disable react/prop-types */
-import { useEffect, useState } from "react";
-import { database } from "./firebase";
-import { ref, get } from "firebase/database";
-import Chart from "chart.js/auto";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { useState, useEffect } from "react";
 import Select from "react-select";
-import "leaflet/dist/leaflet.css";
-import L from 'leaflet';
+import { Button, Container, Row, Col } from "react-bootstrap";
+import { ToastContainer, toast } from "react-toastify";
+import { getDatabase, ref, get } from "firebase/database";
+import { Line } from "react-chartjs-2";
+import "react-toastify/dist/ReactToastify.css";
+import "bootstrap/dist/css/bootstrap.min.css";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 const DataVisualization = () => {
-  const [devices, setDevices] = useState([]);
-  const [selectedDevices, setSelectedDevices] = useState([]);
-  const [combinedSensorData, setCombinedSensorData] = useState({});
-  const [loading, setLoading] = useState(false);
-  const [dataFetched, setDataFetched] = useState(false);
+  const [locationOptions, setLocationOptions] = useState([]);
+  const [dateOptions, setDateOptions] = useState([]);
+  const [selectedLocations, setSelectedLocations] = useState([]);
+  const [selectedDates, setSelectedDates] = useState([]);
+  const [locationDateMap, setLocationDateMap] = useState({});
+  const [data, setData] = useState(null);
+  const [clientName, setClientName] = useState("");
 
   useEffect(() => {
-    const fetchDevices = async () => {
-      const deviceRef = ref(database, "devices");
-      const snapshot = await get(deviceRef);
-      if (snapshot.exists()) {
-        setDevices(snapshot.val());
+    const storedData = JSON.parse(localStorage.getItem("userData"));
+    if (storedData) {
+      setClientName(storedData.username);
+      if (storedData.devices) {
+        const uniqueLocations = new Set();
+        const locDateMap = {};
+
+        storedData.devices.forEach((device) => {
+          device.dates.forEach((dateObj) => {
+            dateObj.times.forEach((timeObj) => {
+              uniqueLocations.add(timeObj.coordinates);
+              if (!locDateMap[timeObj.coordinates]) {
+                locDateMap[timeObj.coordinates] = new Set();
+              }
+              locDateMap[timeObj.coordinates].add(dateObj.date);
+            });
+          });
+        });
+
+        setLocationOptions(
+          Array.from(uniqueLocations).map((location) => ({
+            label: location,
+            value: location,
+          }))
+        );
+
+        const locDateMapArray = {};
+        Object.keys(locDateMap).forEach((loc) => {
+          locDateMapArray[loc] = Array.from(locDateMap[loc]);
+        });
+        setLocationDateMap(locDateMapArray);
       }
-    };
-    fetchDevices();
+    }
   }, []);
 
-  const handleDeviceSelect = (selectedOptions) => {
-    const selectedKeys = selectedOptions.map((option) => option.value);
-    setSelectedDevices(selectedKeys);
-  };
-
-  const fetchData = async () => {
-    setLoading(true);
-    setDataFetched(false);
-
-    const dataPromises = selectedDevices.map(async (deviceKey) => {
-      const selectedDevice = devices[deviceKey];
-      return {
-        ...selectedDevice,
-        sensor_data: selectedDevice.sensor_data || {},
-      };
-    });
-
-    const selectedDeviceData = await Promise.all(dataPromises);
-    setCombinedSensorData(combineSensorData(selectedDeviceData));
-    setLoading(false);
-    setDataFetched(true);
-  };
-
-  const combineSensorData = (selectedDeviceData) => {
-    const combinedData = { ph: {}, tds: {}, turbidity: {} };
-
-    selectedDeviceData.forEach((device) => {
-      for (const sensor in combinedData) {
-        for (const [time, value] of Object.entries(
-          device.sensor_data[sensor] || {}
-        )) {
-          if (!combinedData[sensor][time]) combinedData[sensor][time] = 0;
-          combinedData[sensor][time] += value;
-        }
-      }
-    });
-
-    return combinedData;
-  };
-
-  const renderChart = (canvasId, data, label) => {
-    const ctx = document.getElementById(canvasId)?.getContext("2d");
-    if (ctx) {
-      new Chart(ctx, {
-        type: "line",
-        data: {
-          labels: Object.keys(data),
-          datasets: [
-            {
-              label: label,
-              data: Object.values(data),
-              borderColor: "rgba(75, 192, 192, 1)",
-              backgroundColor: "rgba(75, 192, 192, 0.2)",
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-        },
+  const handleLocationChange = (selectedOptions) => {
+    setSelectedLocations(selectedOptions);
+    if (selectedOptions.length > 0) {
+      const selectedLocs = selectedOptions.map((option) => option.value);
+      const availableDates = new Set();
+      selectedLocs.forEach((loc) => {
+        locationDateMap[loc]?.forEach((date) => availableDates.add(date));
       });
+      setDateOptions(
+        Array.from(availableDates).map((date) => ({ label: date, value: date }))
+      );
+    } else {
+      setDateOptions([]);
+      setSelectedDates([]);
     }
   };
 
-  const calculateAverage = (data) => {
-    if (!data || Object.keys(data).length === 0) return 0;
-    const totalValues = Object.values(data).reduce(
-      (sum, value) => sum + value,
-      0
+  const handleGetData = async () => {
+    if (selectedLocations.length === 0) {
+      toast.warning("Please select at least one location.");
+    } else if (selectedDates.length === 0) {
+      toast.warning("Please select at least one date.");
+    } else {
+      const formattedDates = selectedDates.map((date) =>
+        date.value.replace(/-/g, "")
+      );
+      const db = getDatabase();
+      const devicesRef = ref(db, "devices");
+
+      try {
+        const snapshot = await get(devicesRef);
+        if (snapshot.exists()) {
+          const devicesData = snapshot.val();
+          const matchingDevices = [];
+          Object.keys(devicesData).forEach((deviceId) => {
+            const device = devicesData[deviceId];
+            const deviceMatches = {
+              deviceId: deviceId,
+              dates: [],
+            };
+
+            Object.keys(device).forEach((clientId) => {
+              if (clientId === clientName) {
+                formattedDates.forEach((date) => {
+                  if (device[clientId][date]) {
+                    const dateEntry = {
+                      date: `${date.slice(0, 4)}.${date.slice(
+                        4,
+                        6
+                      )}.${date.slice(6, 8)}`,
+                      locations: [],
+                    };
+
+                    Object.keys(device[clientId][date]).forEach((time) => {
+                      const entry = device[clientId][date][time];
+                      if (
+                        selectedLocations.some(
+                          (location) =>
+                            location.value === entry.location.coordinates
+                        )
+                      ) {
+                        const sensorData = {
+                          ph: [],
+                          tds: [],
+                          turbidity: [],
+                        };
+
+                        if (entry.location.sensor_data) {
+                          if (entry.location.sensor_data.ph) {
+                            Object.entries(
+                              entry.location.sensor_data.ph
+                            ).forEach(([timestamp, value]) => {
+                              sensorData.ph.push({
+                                time: timestamp,
+                                value: value,
+                              });
+                            });
+                          }
+                          if (entry.location.sensor_data.tds) {
+                            Object.entries(
+                              entry.location.sensor_data.tds
+                            ).forEach(([timestamp, value]) => {
+                              sensorData.tds.push({
+                                time: timestamp,
+                                value: value,
+                              });
+                            });
+                          }
+                          if (entry.location.sensor_data.turbidity) {
+                            Object.entries(
+                              entry.location.sensor_data.turbidity
+                            ).forEach(([timestamp, value]) => {
+                              sensorData.turbidity.push({
+                                time: timestamp,
+                                value: value,
+                              });
+                            });
+                          }
+                        }
+
+                        dateEntry.locations.push({
+                          time: time,
+                          coordinates: entry.location.coordinates,
+                          sensorData: sensorData,
+                        });
+                      }
+                    });
+
+                    if (dateEntry.locations.length > 0) {
+                      deviceMatches.dates.push(dateEntry);
+                    }
+                  }
+                });
+              }
+            });
+
+            if (deviceMatches.dates.length > 0) {
+              matchingDevices.push(deviceMatches);
+            }
+          });
+
+          setData(matchingDevices);
+        } else {
+          console.log("No data available");
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        toast.error("Error fetching data.");
+      }
+    }
+  };
+
+  const getOverallSensorStats = () => {
+    if (!data || data.length === 0) {
+      return {
+        ph: "N/A",
+        tds: "N/A",
+        turbidity: "N/A",
+        sensorCount: 0,
+      };
+    }
+  
+    const phValues = [];
+    const tdsValues = [];
+    const turbidityValues = [];
+    let sensorCount = 0;
+  
+    data.forEach((device) =>
+      device.dates.forEach((dateEntry) =>
+        dateEntry.locations.forEach((location) => {
+          location.sensorData.ph.forEach(({ value }) => phValues.push(value));
+          location.sensorData.tds.forEach(({ value }) =>
+            tdsValues.push(value)
+          );
+          location.sensorData.turbidity.forEach(({ value }) =>
+            turbidityValues.push(value)
+          );
+          sensorCount += 1;
+        })
+      )
     );
-    return (totalValues / Object.keys(data).length).toFixed(2);
+  
+    const avg = (arr) =>
+      arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2) : "N/A";
+  
+    return {
+      ph: avg(phValues),
+      tds: avg(tdsValues),
+      turbidity: avg(turbidityValues),
+      sensorCount: sensorCount,
+    };
+  };
+  
+
+  const renderSensorChart = (sensorType) => {
+    const labels = [];
+    const dataPoints = [];
+
+    data.forEach((device) =>
+      device.dates.forEach((dateEntry) =>
+        dateEntry.locations.forEach((location) => {
+          location.sensorData[sensorType].forEach((sensor) => {
+            labels.push(sensor.time);
+            dataPoints.push(sensor.value);
+          });
+        })
+      )
+    );
+
+    const chartData = {
+      labels,
+      datasets: [
+        {
+          label: `${sensorType.toUpperCase()} over Time`,
+          data: dataPoints,
+          fill: false,
+          backgroundColor: "rgb(75, 192, 192)",
+          borderColor: "rgba(75, 192, 192, 0.2)",
+        },
+      ],
+    };
+
+    return <Line data={chartData} options={{ responsive: true }} />;
   };
 
-  const averagePh = calculateAverage(combinedSensorData.ph);
-  const averageTds = calculateAverage(combinedSensorData.tds);
-  const averageTurbidity = calculateAverage(combinedSensorData.turbidity);
-
-  useEffect(() => {
-    if (dataFetched && combinedSensorData) {
-      renderChart("phChart", combinedSensorData.ph || {}, "Average pH Levels");
-      renderChart(
-        "tdsChart",
-        combinedSensorData.tds || {},
-        "Average TDS Levels"
-      );
-      renderChart(
-        "turbidityChart",
-        combinedSensorData.turbidity || {},
-        "Average Turbidity Levels"
-      );
-    }
-  }, [combinedSensorData, dataFetched]);
-
-  const deviceOptions = Object.keys(devices).map((deviceKey) => ({
-    value: deviceKey,
-    label: deviceKey,
-  }));
+  const overallStats = getOverallSensorStats();
 
   return (
-    <div className="p-4">
-      <div className="flex">
-        <label className="block text-lg font-semibold">Select Sensors:</label>
-        <div className="col-6">
+    <Container className="mt-4">
+      <Row className="my-3">
+        <Col>
+          <label>Select Location(s):</label>
           <Select
             isMulti
-            options={deviceOptions}
-            onChange={handleDeviceSelect}
-            className="mt-2 mb-4 p-2"
-            placeholder="Select devices..."
+            options={locationOptions}
+            value={selectedLocations}
+            onChange={handleLocationChange}
+            placeholder="Select Locations..."
           />
-        </div>
+        </Col>
+        <Col>
+          <label>Select Date(s):</label>
+          <Select
+            isMulti
+            options={dateOptions}
+            value={selectedDates}
+            onChange={setSelectedDates}
+            placeholder="Select Dates..."
+            isDisabled={selectedLocations.length === 0}
+          />
+        </Col>
+      </Row>
+      <Button variant="primary" onClick={handleGetData}>
+        Get Data
+      </Button>
 
-        <button
-          onClick={fetchData}
-          className="h-9 px-4 mt-4 bg-blue-500 text-white rounded shadow-md hover:bg-blue-600"
-        >
-          Get Data
-        </button>
-      </div>
+      {data && (
+        <>
+          <Row className="mt-5">
+            <Col md={6}>
+              <h4 className="mb-3 font-bold text-4xl">
+                Overall Sensor Summary
+              </h4>
+              <div className="flex items-center justify-center">
+                <div>
+                  <p className="mb-4 mt-4">
+                    <strong>Sensor Count:</strong> {overallStats.sensorCount}
+                  </p>
+                  <p className="mb-4">
+                    <strong>Average pH:</strong> {overallStats.ph}
+                  </p>
+                  <p className="mb-4">
+                    <strong>Average TDS:</strong> {overallStats.tds}
+                  </p>
+                  <p className="">
+                    <strong>Average Turbidity:</strong> {overallStats.turbidity}
+                  </p>
+                </div>
+              </div>
+            </Col>
 
-      {loading ? (
-        <div className="flex justify-center items-center h-32">
-          <div className="loader">Loading...</div>
-        </div>
-      ) : (
-        dataFetched &&
-        selectedDevices.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            <div className="border p-4 rounded shadow-lg">
-              <h2 className="text-xl font-semibold">Sensor Information</h2>
-              <h2 className="text-xl font-semibold mt-4">
-                Average Values (All Selected Devices)
-              </h2>
-              <div className="flex flex-col space-y-2 mt-2">
-                <div className="flex justify-between">
-                  <span className="font-medium">Average pH:</span>
-                  <span>{averagePh}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-medium">Average TDS:</span>
-                  <span>{averageTds}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-medium">Average Turbidity:</span>
-                  <span>{averageTurbidity}</span>
-                </div>
-              </div>
-              <div className="mt-4">
-                <MapContainer
-                  center={[20.5937, 78.9629]}
-                  zoom={5}
-                  style={{ height: "330px", width: "100%" }}
-                >
-                  <TileLayer
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
-                  />
-                  <DeviceMarkers
-                    selectedDevices={selectedDevices}
-                    devices={devices}
-                  />
-                </MapContainer>
-              </div>
-            </div>
+            <Col md={6}>
+              <h4>pH Levels Over Time</h4>
+              {renderSensorChart("ph")}
+            </Col>
+          </Row>
 
-            <div className="flex flex-col gap-4">
-              <div
-                className="bg-red-200 p-2 rounded"
-                style={{ height: "190px" }}
-              >
-                <canvas id="phChart"></canvas>
-              </div>
-              <div
-                className="bg-green-200 p-2 rounded"
-                style={{ height: "190px" }}
-              >
-                <canvas id="tdsChart"></canvas>
-              </div>
-              <div
-                className="bg-blue-200 p-2 rounded"
-                style={{ height: "190px" }}
-              >
-                <canvas id="turbidityChart"></canvas>
-              </div>
-            </div>
-          </div>
-        )
+          <Row className="mt-5">
+            <Col md={6}>
+              <h4>TDS Levels Over Time</h4>
+              {renderSensorChart("tds")}
+            </Col>
+            <Col md={6}>
+              <h4>Turbidity Levels Over Time</h4>
+              {renderSensorChart("turbidity")}
+            </Col>
+          </Row>
+        </>
       )}
-    </div>
-  );
-};
 
-const customIcon = new L.Icon({
-  iconUrl: 'https://img.icons8.com/color/48/map-pin.png',
-  iconSize: [48, 48], 
-  iconAnchor: [24, 48],
-  popupAnchor: [0, -48]
-});
-
-const DeviceMarkers = ({ selectedDevices, devices }) => {
-  const map = useMap();
-
-  useEffect(() => {
-    if (selectedDevices.length) {
-      const bounds = [];
-
-      selectedDevices.forEach((deviceKey) => {
-        const location = devices[deviceKey]?.location; 
-        if (location) {
-          const [lat, lon] = location.split(",").map((coord) => parseFloat(coord));
-          bounds.push([lat, lon]);
-        }
-      });
-
-      if (bounds.length) {
-        map.fitBounds(bounds); 
-      }
-    }
-  }, [selectedDevices, devices, map]);
-
-  return (
-    <>
-      {selectedDevices.map((deviceKey) => {
-        const location = devices[deviceKey]?.location;
-        if (location) {
-          const [lat, lon] = location.split(",").map((coord) => parseFloat(coord));
-          return (
-            <Marker key={deviceKey} position={[lat, lon]} icon={customIcon}>
-              <Popup>Device Location: {location}</Popup>
-            </Marker>
-          );
-        }
-        return null;
-      })}
-    </>
+      <ToastContainer />
+    </Container>
   );
 };
 

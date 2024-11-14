@@ -231,17 +231,8 @@ const Reports = () => {
         document.body.removeChild(link);
     };
     
-    
-    
-    
-    
-
-    
-
     return (
         <Container className="mt-4">
-            <h2>Reports</h2>
-            <h5>Client Name: {clientName}</h5>
             <Row className="my-3">
                 <Col>
                     <label>Select Location(s):</label>
