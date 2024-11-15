@@ -87,6 +87,17 @@ const SideNav = () => {
             Reports
           </NavLink>
         </Nav.Item>
+
+        <Nav.Item className="my-3">
+          <NavLink
+            to="/settings"
+            className={({ isActive }) =>
+              isActive ? "text-info" : "text-white"
+            }
+          >
+            Setting
+          </NavLink>
+        </Nav.Item>
       </Nav>
 
       <Nav className="mt-auto">

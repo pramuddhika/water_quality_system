@@ -16,6 +16,8 @@ const Layout = () => {
     title = 'Reports';
   } else if (location.pathname === '/sensor-data') {
     title = 'Sensor Data';
+  } else if (location.pathname === '/settings') {
+    title = 'Settings';
   }
 
   return (
