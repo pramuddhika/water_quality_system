@@ -53,16 +53,18 @@ const SideNav = () => {
           </Nav.Item>
         )}
 
-        <Nav.Item className="my-3">
-          <NavLink
-            to="/data-visualization"
-            className={({ isActive }) =>
-              isActive ? "text-info" : "text-white"
-            }
-          >
-            DataVisualization
-          </NavLink>
-        </Nav.Item>
+        {currentUser.role === "Client" && (
+          <Nav.Item className="my-3">
+            <NavLink
+              to="/data-visualization"
+              className={({ isActive }) =>
+                isActive ? "text-info" : "text-white"
+              }
+            >
+              DataVisualization
+            </NavLink>
+          </Nav.Item>
+        )}
 
         {currentUser.role === "Admin" && (
           <Nav.Item className="my-3">
@@ -77,16 +79,18 @@ const SideNav = () => {
           </Nav.Item>
         )}
 
-        <Nav.Item className="my-3">
-          <NavLink
-            to="/reports"
-            className={({ isActive }) =>
-              isActive ? "text-info" : "text-white"
-            }
-          >
-            Reports
-          </NavLink>
-        </Nav.Item>
+        {currentUser.role === "Client" && (
+          <Nav.Item className="my-3">
+            <NavLink
+              to="/reports"
+              className={({ isActive }) =>
+                isActive ? "text-info" : "text-white"
+              }
+            >
+              Reports
+            </NavLink>
+          </Nav.Item>
+        )}
 
         <Nav.Item className="my-3">
           <NavLink
