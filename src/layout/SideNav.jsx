@@ -79,6 +79,19 @@ const SideNav = () => {
           </Nav.Item>
         )}
 
+        {currentUser.role === "Admin" && (
+          <Nav.Item className="my-3">
+            <NavLink
+              to="/client-data"
+              className={({ isActive }) =>
+                isActive ? "text-info" : "text-white"
+              }
+            >
+              Client Data
+            </NavLink>
+          </Nav.Item>
+        )}
+
         {currentUser.role === "Client" && (
           <Nav.Item className="my-3">
             <NavLink

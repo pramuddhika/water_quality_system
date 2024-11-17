@@ -72,6 +72,7 @@ const Setting = () => {
         />
       </div>
       <div className="mt-28">
+        <h1 className="text-3xl font-bold">Change Password</h1>
         <Form className="mt-6 ml-16" onSubmit={handlePasswordChange}>
           <Form.Group controlId="formNewPassword">
             <Form.Label>New Password</Form.Label>
