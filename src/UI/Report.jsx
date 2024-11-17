@@ -17,40 +17,46 @@ const Reports = () => {
     useEffect(() => {
         // Load data from browser memory (localStorage)
         const data = JSON.parse(localStorage.getItem("userData"));
-
+      
         if (data) {
-            // Set client name from data
-            setClientName(data.username);
-
-            if (data.devices) {
-                const uniqueLocations = new Set();
-                const locDateMap = {};
-
-                data.devices.forEach(device => {
-                    device.dates.forEach(dateObj => {
-                        dateObj.times.forEach(timeObj => {
-                            uniqueLocations.add(timeObj.coordinates);
-                            // Build a map of location to available dates
-                            if (!locDateMap[timeObj.coordinates]) {
-                                locDateMap[timeObj.coordinates] = new Set();
-                            }
-                            locDateMap[timeObj.coordinates].add(dateObj.date);
-                        });
-                    });
-                });
-
-                // Set location options for react-select
-                setLocationOptions(Array.from(uniqueLocations).map(location => ({ label: location, value: location })));
-                
-                // Convert locDateMap date sets to arrays for easy rendering
-                const locDateMapArray = {};
-                Object.keys(locDateMap).forEach(loc => {
-                    locDateMapArray[loc] = Array.from(locDateMap[loc]);
-                });
-                setLocationDateMap(locDateMapArray);
-            }
+          // Set client name from data
+          setClientName(data.username);
+      
+          if (data.devices) {
+            const uniqueLocations = new Set();
+            const locDateMap = {};
+      
+            data.devices.forEach((device) => {
+              device.dates.forEach((dateObj) => {
+                // Add location to the set of unique locations
+                uniqueLocations.add(dateObj.location);
+      
+                // Build a map of location to available dates
+                if (!locDateMap[dateObj.location]) {
+                  locDateMap[dateObj.location] = new Set();
+                }
+                locDateMap[dateObj.location].add(dateObj.date);
+              });
+            });
+      
+            // Set location options for react-select
+            setLocationOptions(
+              Array.from(uniqueLocations).map((location) => ({
+                label: location,
+                value: location,
+              }))
+            );
+      
+            // Convert locDateMap date sets to arrays for easy rendering
+            const locDateMapArray = {};
+            Object.keys(locDateMap).forEach((loc) => {
+              locDateMapArray[loc] = Array.from(locDateMap[loc]);
+            });
+            setLocationDateMap(locDateMapArray);
+          }
         }
-    }, []);
+      }, []);
+      
 
     const handleLocationChange = (selectedOptions) => {
         setSelectedLocations(selectedOptions);
@@ -105,8 +111,8 @@ const Reports = () => {
                                             locations: []
                                         };
     
-                                        Object.keys(device[clientId][date]).forEach(time => {
-                                            const entry = device[clientId][date][time];
+                                        Object.keys(device[clientId][date]).forEach(() => {
+                                            const entry = device[clientId][date];
     
                                             if (selectedLocations.some(location => location.value === entry.location.coordinates)) {
                                                 const sensorData = {
@@ -149,7 +155,6 @@ const Reports = () => {
                                                 }
     
                                                 dateEntry.locations.push({
-                                                    time: time,
                                                     coordinates: entry.location.coordinates,
                                                     sensorData: sensorData
                                                 });
@@ -188,13 +193,13 @@ const Reports = () => {
         const csvRows = [];
     
         // Define headers
-        csvRows.push("Device ID,Date,Time,Coordinates,Coordinates,PH Time,PH Value,TDS Time,TDS Value,Turbidity Time,Turbidity Value");
+        csvRows.push("Device ID,Date,Coordinates,Coordinates,PH Time,PH Value,TDS Time,TDS Value,Turbidity Time,Turbidity Value");
     
         // Loop through data to format each row
         data.forEach(device => {
             device.dates.forEach(dateEntry => {
                 dateEntry.locations.forEach(location => {
-                    const { time, coordinates, sensorData } = location;
+                    const { coordinates, sensorData } = location;
     
                     // Generate rows for each sensor data type
                     const maxLength = Math.max(sensorData.ph.length, sensorData.tds.length, sensorData.turbidity.length);
@@ -206,7 +211,6 @@ const Reports = () => {
                         csvRows.push([
                             device.deviceId,
                             dateEntry.date,
-                            time,
                             coordinates,
                             ph.time, ph.value,
                             tds.time, tds.value,

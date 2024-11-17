@@ -27,60 +27,43 @@ const SensorData = () => {
     return `${year}-${month}-${day}`;
   };
 
-  // Function to format time from HHMMSS to hh:mm:ss
-  const formatTime = (timeString) => {
-    const hours = timeString.substring(0, 2);
-    const minutes = timeString.substring(2, 4);
-    const seconds = timeString.substring(4, 6);
-    return `${hours}:${minutes}:${seconds}`;
-  };
-
   useEffect(() => {
-  const fetchDevices = async () => {
-    const dbRef = ref(database);
-    try {
-      const snapshot = await get(child(dbRef, "devices"));
-      if (snapshot.exists()) {
-        const devicesData = snapshot.val();
-        const clientDevices = [];
+    const fetchDevices = async () => {
+      const dbRef = ref(database);
+      try {
+        const snapshot = await get(child(dbRef, "devices"));
+        if (snapshot.exists()) {
+          const devicesData = snapshot.val();
+          const clientDevices = [];
 
-        for (const [deviceId, clients] of Object.entries(devicesData)) {
-          if (currentUser.username in clients) {
-            const datesData = clients[currentUser.username];
+          for (const [deviceId, clients] of Object.entries(devicesData)) {
+            if (currentUser.username in clients) {
+              const datesData = clients[currentUser.username];
 
-            // Sort dates in descending order
-            const sortedDates = Object.keys(datesData)
-              .sort((a, b) => new Date(b) - new Date(a)) // Parse date strings for sorting
-              .map(dateKey => {
-                const formattedDate = formatDate(dateKey);
-                const timesData = datesData[dateKey];
+              // Sort dates in descending order
+              const sortedDates = Object.keys(datesData)
+                .sort((a, b) => new Date(b) - new Date(a)) // Parse date strings for sorting
+                .map(dateKey => {
+                  const formattedDate = formatDate(dateKey);
+                  const locationData = datesData[dateKey];
 
-                // Sort times in descending order
-                const sortedTimes = Object.entries(timesData)
-                  .sort(([timeA], [timeB]) => timeB.localeCompare(timeA))
-                  .map(([time, timeDetails]) => {
-                    const { location: { coordinates } = {} } = timeDetails;
-                    return { time: formatTime(time), coordinates };
-                  });
+                  return { date: formattedDate, location: locationData.location?.coordinates };
+                });
 
-                return { date: formattedDate, times: sortedTimes };
-              });
-
-            clientDevices.push({ deviceId, dates: sortedDates });
+              clientDevices.push({ deviceId, dates: sortedDates });
+            }
           }
+
+          setDevices(clientDevices);
+          const updatedUserData = { ...currentUser, devices: clientDevices };
+          localStorage.setItem("userData", JSON.stringify(updatedUserData));
         }
-
-        setDevices(clientDevices);
-        const updatedUserData = { ...currentUser, devices: clientDevices };
-        localStorage.setItem("userData", JSON.stringify(updatedUserData));
+      } catch (error) {
+        console.error("Error fetching devices: ", error);
       }
-    } catch (error) {
-      console.error("Error fetching devices: ", error);
-    }
-  };
-  fetchDevices();
-}, [currentUser.username]);
-
+    };
+    fetchDevices();
+  }, [currentUser.username]);
 
   const handleViewLocation = (coordinates) => {
     const parsedLocation = parseCoordinates(coordinates);
@@ -90,7 +73,7 @@ const SensorData = () => {
 
   return (
     <div>
-      <div className="flex items-center gap-5 mt-4"> 
+      <div className="flex items-center gap-5 mt-4">
         <p className="font-bold ml-3">Your devices list</p>
         <input
           type="text"
@@ -114,30 +97,26 @@ const SensorData = () => {
               <tr>
                 <th>Device Id</th>
                 <th>Date</th>
-                <th>Time</th>
                 <th>Location</th>
               </tr>
             </thead>
             <tbody>
               {devices.map(device =>
-                device.dates.map(date =>
-                  date.times.map(time => (
-                    <tr key={`${device.deviceId}-${date.date}-${time.time}`}>
-                      <td>{device.deviceId}</td>
-                      <td>{date.date}</td>
-                      <td>{time.time}</td>
-                      <td className="flex justify-between">
-                        {time.coordinates}
-                        <button
-                          onClick={() => handleViewLocation(time.coordinates)}
-                          className="text-end ml-2"
-                        >
-                          <i className="bi bi-eye"></i>
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )
+                device.dates.map(date => (
+                  <tr key={`${device.deviceId}-${date.date}`}>
+                    <td>{device.deviceId}</td>
+                    <td>{date.date}</td>
+                    <td className="flex justify-between">
+                      {date.location}
+                      <button
+                        onClick={() => handleViewLocation(date.location)}
+                        className="text-end ml-2"
+                      >
+                        <i className="bi bi-eye"></i>
+                      </button>
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </Table>
