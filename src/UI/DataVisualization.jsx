@@ -46,13 +46,11 @@ const DataVisualization = () => {
 
         storedData.devices.forEach((device) => {
           device.dates.forEach((dateObj) => {
-            dateObj.times.forEach((timeObj) => {
-              uniqueLocations.add(timeObj.coordinates);
-              if (!locDateMap[timeObj.coordinates]) {
-                locDateMap[timeObj.coordinates] = new Set();
+              uniqueLocations.add(dateObj.location);
+              if (!locDateMap[dateObj.location]) {
+                locDateMap[dateObj.location] = new Set();
               }
-              locDateMap[timeObj.coordinates].add(dateObj.date);
-            });
+              locDateMap[dateObj.location].add(dateObj.date);
           });
         });
 
@@ -125,8 +123,8 @@ const DataVisualization = () => {
                       locations: [],
                     };
 
-                    Object.keys(device[clientId][date]).forEach((time) => {
-                      const entry = device[clientId][date][time];
+                    Object.keys(device[clientId][date]).forEach(() => {
+                      const entry = device[clientId][date];
                       if (
                         selectedLocations.some(
                           (location) =>
@@ -173,7 +171,6 @@ const DataVisualization = () => {
                         }
 
                         dateEntry.locations.push({
-                          time: time,
                           coordinates: entry.location.coordinates,
                           sensorData: sensorData,
                         });
