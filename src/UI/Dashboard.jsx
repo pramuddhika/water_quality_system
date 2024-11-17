@@ -70,7 +70,7 @@ const Dashboard = () => {
   }, []);
 
   return (
-    <Container className="mt-4">
+    <Container className="mt-12">
       <ToastContainer />
       <Row className="mb-4">
         <Col md={6}>
