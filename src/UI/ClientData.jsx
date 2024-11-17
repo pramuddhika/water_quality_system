@@ -97,14 +97,10 @@ const ClientData = () => {
   };
 
   const handleDateChange = (selectedOptions) => {
-    if (selectedLocations.length === 0) {
-      toast.error("Please select a location first!");
-      return;
-    }
     setSelectedDates(selectedOptions || []);
   };
 
-  const handleGetData = () => {
+  const handleGetData = async () => {
     if (!selectedClient) {
       toast.error("Please select a client.");
       return;
@@ -118,15 +114,86 @@ const ClientData = () => {
       return;
     }
 
-    console.log("Selected Client:", selectedClient);
-    console.log(
-      "Selected Locations:",
-      selectedLocations.map((loc) => loc.value)
-    );
-    console.log(
-      "Selected Dates:",
-        selectedDates.map(date => date.value.replace(/-/g, ''))
-    );
+    const formattedDates = selectedDates.map(date => date.value.replace(/-/g, ""));
+    const selectedLocs = selectedLocations.map(loc => loc.value);
+
+    try {
+      const devicesRef = ref(database, `devices`);
+      const snapshot = await get(devicesRef);
+      if (snapshot.exists()) {
+        const devicesData = snapshot.val();
+        const matchingData = [];
+
+        for (const [deviceId, clients] of Object.entries(devicesData)) {
+          if (selectedClient in clients) {
+            const clientData = clients[selectedClient];
+            formattedDates.forEach((dateKey) => {
+              if (clientData[dateKey]) {
+                Object.entries(clientData[dateKey]).forEach(([timeKey, entry]) => {
+                  if (selectedLocs.includes(entry.location.coordinates)) {
+                    matchingData.push({
+                      deviceId,
+                      date: formatDate(dateKey),
+                      time: timeKey,
+                      coordinates: entry.location.coordinates,
+                      ph: entry.location.sensor_data?.ph || {},
+                      tds: entry.location.sensor_data?.tds || {},
+                      turbidity: entry.location.sensor_data?.turbidity || {},
+                    });
+                  }
+                });
+              }
+            });
+          }
+        }
+
+        exportToCSV(matchingData);
+      } else {
+        toast.error("No data found for the selected criteria.");
+      }
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+  };
+
+  const exportToCSV = (data) => {
+    const csvRows = [];
+    csvRows.push("Device ID,Date,Time,Coordinates,PH Time,PH Value,TDS Time,TDS Value,Turbidity Time,Turbidity Value");
+
+    data.forEach(entry => {
+      const maxLength = Math.max(
+        Object.keys(entry.ph).length,
+        Object.keys(entry.tds).length,
+        Object.keys(entry.turbidity).length
+      );
+
+      for (let i = 0; i < maxLength; i++) {
+        const phEntry = Object.entries(entry.ph)[i] || ["", ""];
+        const tdsEntry = Object.entries(entry.tds)[i] || ["", ""];
+        const turbidityEntry = Object.entries(entry.turbidity)[i] || ["", ""];
+
+        csvRows.push([
+          entry.deviceId,
+          entry.date,
+          entry.time,
+          entry.coordinates,
+          phEntry[0], phEntry[1],
+          tdsEntry[0], tdsEntry[1],
+          turbidityEntry[0], turbidityEntry[1]
+        ].join(","));
+      }
+    });
+
+    const csvContent = csvRows.join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "sensor_data.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const formatDate = (dateString) => {
@@ -201,7 +268,7 @@ const ClientData = () => {
               onClick={handleGetData}
               disabled={!selectedClient}
             >
-              Get Data
+              Download CSV
             </Button>
           </div>
         </Form>
