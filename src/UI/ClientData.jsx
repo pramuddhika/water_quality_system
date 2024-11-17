@@ -51,29 +51,34 @@ const ClientData = () => {
       toast.error("Please select a client first!");
       return;
     }
-
+  
     try {
       const devicesRef = ref(database, `devices`);
       const snapshot = await get(devicesRef);
+  
       if (snapshot.exists()) {
         const devicesData = snapshot.val();
         const availableLocations = new Set();
         const availableDates = new Set();
-
+  
         for (const [deviceId, clients] of Object.entries(devicesData)) {
-          if (selectedClient in clients) {
+          if (clients[selectedClient]) {
             const clientData = clients[selectedClient];
             for (const [dateKey, timesData] of Object.entries(clientData)) {
               availableDates.add(formatDate(dateKey));
+  
               for (const [timeKey, timeDetails] of Object.entries(timesData)) {
-                if (timeDetails.location && timeDetails.location.coordinates) {
-                  availableLocations.add(timeDetails.location.coordinates);
+                if (timeDetails.coordinates) {
+                  availableLocations.add(timeDetails.coordinates);            
                 }
               }
             }
           }
         }
-
+  
+        if (availableLocations.size === 0) {
+          toast.warning("No locations found for the selected client.");
+        }
         setLocations([...availableLocations]);
         setDates([...availableDates]);
       } else {
@@ -83,6 +88,7 @@ const ClientData = () => {
       console.error("Error fetching locations and dates:", error);
     }
   };
+  
 
   const handleClientChange = (event) => {
     setSelectedClient(event.target.value);
@@ -113,40 +119,44 @@ const ClientData = () => {
       toast.error("Please select at least one date.");
       return;
     }
-
+  
     const formattedDates = selectedDates.map(date => date.value.replace(/-/g, ""));
     const selectedLocs = selectedLocations.map(loc => loc.value);
-
+  
     try {
       const devicesRef = ref(database, `devices`);
       const snapshot = await get(devicesRef);
       if (snapshot.exists()) {
         const devicesData = snapshot.val();
         const matchingData = [];
-
+  
         for (const [deviceId, clients] of Object.entries(devicesData)) {
-          if (selectedClient in clients) {
-            const clientData = clients[selectedClient];
-            formattedDates.forEach((dateKey) => {
-              if (clientData[dateKey]) {
-                Object.entries(clientData[dateKey]).forEach(([timeKey, entry]) => {
-                  if (selectedLocs.includes(entry.location.coordinates)) {
+            if (clients[selectedClient]) {
+              const clientData = clients[selectedClient];
+          
+              formattedDates.forEach((dateKey) => {
+                if (clientData[dateKey]) {
+                  const dateEntry = clientData[dateKey];
+                  const location = dateEntry?.location;
+          
+                  if (location?.coordinates && selectedLocs.includes(location.coordinates)) {
+                    const sensorData = location.sensor_data || {};
+                    
                     matchingData.push({
                       deviceId,
                       date: formatDate(dateKey),
-                      time: timeKey,
-                      coordinates: entry.location.coordinates,
-                      ph: entry.location.sensor_data?.ph || {},
-                      tds: entry.location.sensor_data?.tds || {},
-                      turbidity: entry.location.sensor_data?.turbidity || {},
+                      coordinates: location.coordinates,
+                      ph: sensorData.ph || {},
+                      tds: sensorData.tds || {},
+                      turbidity: sensorData.turbidity || {},
                     });
                   }
-                });
-              }
-            });
+                }
+              });
+            }
           }
-        }
-
+          
+  
         exportToCSV(matchingData);
       } else {
         toast.error("No data found for the selected criteria.");
@@ -155,10 +165,11 @@ const ClientData = () => {
       console.error("Error fetching data:", error);
     }
   };
+  
 
   const exportToCSV = (data) => {
     const csvRows = [];
-    csvRows.push("Device ID,Date,Time,Coordinates,PH Time,PH Value,TDS Time,TDS Value,Turbidity Time,Turbidity Value");
+    csvRows.push("Device ID,Date,Coordinates,Coordinates,PH Time,PH Value,TDS Time,TDS Value,Turbidity Time,Turbidity Value");
 
     data.forEach(entry => {
       const maxLength = Math.max(
@@ -175,7 +186,6 @@ const ClientData = () => {
         csvRows.push([
           entry.deviceId,
           entry.date,
-          entry.time,
           entry.coordinates,
           phEntry[0], phEntry[1],
           tdsEntry[0], tdsEntry[1],
