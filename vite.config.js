@@ -19,5 +19,8 @@ export default defineConfig(() => {
     build: {
       chunkSizeWarningLimit: 1600,
     },
+    optimizeDeps: {
+      exclude: ['pyodide.asm.js'], // Add the problematic dependency here
+    },
   }
 });

@@ -1,269 +1,500 @@
-import { useState, useEffect } from 'react';
-import Select from 'react-select';
-import { Button, Container, Row, Col } from 'react-bootstrap';
-import { ToastContainer, toast } from 'react-toastify';
+import { useState, useEffect } from "react";
+import Select from "react-select";
+import { Button, Container, Row, Col } from "react-bootstrap";
+import { ToastContainer, toast } from "react-toastify";
 import { getDatabase, ref, get } from "firebase/database";
-import 'react-toastify/dist/ReactToastify.css';
-import 'bootstrap/dist/css/bootstrap.min.css';
+import "react-toastify/dist/ReactToastify.css";
+import "bootstrap/dist/css/bootstrap.min.css";
+import Chart from "chart.js/auto";
+import * as tf from "@tensorflow/tfjs";
+import { MatrixController, MatrixElement } from "chartjs-chart-matrix";
 
 const Reports = () => {
-    const [locationOptions, setLocationOptions] = useState([]);
-    const [dateOptions, setDateOptions] = useState([]);
-    const [selectedLocations, setSelectedLocations] = useState([]);
-    const [selectedDates, setSelectedDates] = useState([]);
-    const [locationDateMap, setLocationDateMap] = useState({});
-    const [clientName, setClientName] = useState("");
+  const [locationOptions, setLocationOptions] = useState([]);
+  const [dateOptions, setDateOptions] = useState([]);
+  const [selectedLocations, setSelectedLocations] = useState([]);
+  const [selectedDates, setSelectedDates] = useState([]);
+  const [locationDateMap, setLocationDateMap] = useState({});
+  const [clientName, setClientName] = useState("");
+  const [processedData, setProcessedData] = useState([]);
+  const [svmPredictions, setSvmPredictions] = useState([]);
+  const [treePredictions, setTreePredictions] = useState([]);
+  const [matchingDevices, setmatchingDevices] = useState([]);
+  Chart.register(MatrixController, MatrixElement);
 
-    useEffect(() => {
-        // Load data from browser memory (localStorage)
-        const data = JSON.parse(localStorage.getItem("userData"));
-      
-        if (data) {
-          // Set client name from data
-          setClientName(data.username);
-      
-          if (data.devices) {
-            const uniqueLocations = new Set();
-            const locDateMap = {};
-      
-            data.devices.forEach((device) => {
-              device.dates.forEach((dateObj) => {
-                // Add location to the set of unique locations
-                uniqueLocations.add(dateObj.location);
-      
-                // Build a map of location to available dates
-                if (!locDateMap[dateObj.location]) {
-                  locDateMap[dateObj.location] = new Set();
-                }
-                locDateMap[dateObj.location].add(dateObj.date);
-              });
-            });
-      
-            // Set location options for react-select
-            setLocationOptions(
-              Array.from(uniqueLocations).map((location) => ({
-                label: location,
-                value: location,
-              }))
-            );
-      
-            // Convert locDateMap date sets to arrays for easy rendering
-            const locDateMapArray = {};
-            Object.keys(locDateMap).forEach((loc) => {
-              locDateMapArray[loc] = Array.from(locDateMap[loc]);
-            });
-            setLocationDateMap(locDateMapArray);
-          }
-        }
-      }, []);
-      
+  useEffect(() => {
+    // Load data from browser memory (localStorage)
+    const data = JSON.parse(localStorage.getItem("userData"));
 
-    const handleLocationChange = (selectedOptions) => {
-        setSelectedLocations(selectedOptions);
+    if (data) {
+      // Set client name from data
+      setClientName(data.username);
 
-        if (selectedOptions.length > 0) {
-            // Collect unique dates from selected locations
-            const selectedLocs = selectedOptions.map(option => option.value);
-            const availableDates = new Set();
-            selectedLocs.forEach(loc => {
-                locationDateMap[loc]?.forEach(date => availableDates.add(date));
-            });
-            setDateOptions(Array.from(availableDates).map(date => ({ label: date, value: date })));
-        } else {
-            // Clear date options if no location is selected
-            setDateOptions([]);
-            setSelectedDates([]);
-        }
-    };
+      if (data.devices) {
+        const uniqueLocations = new Set();
+        const locDateMap = {};
 
-    const handleGetData = async () => {
-        if (selectedLocations.length === 0) {
-            toast.warning("Please select at least one location.");
-        } else if (selectedDates.length === 0) {
-            toast.warning("Please select at least one date.");
-        } else {
-            // Convert selected dates to YYYYMMDD format
-            const formattedDates = selectedDates.map(date => date.value.replace(/-/g, ''));
-    
-            const db = getDatabase();
-            const devicesRef = ref(db, 'devices');
-    
-            try {
-                const snapshot = await get(devicesRef);
-                if (snapshot.exists()) {
-                    const devicesData = snapshot.val();
-                    const matchingDevices = [];
-    
-                    // Iterate through devices to find matches
-                    Object.keys(devicesData).forEach(deviceId => {
-                        const device = devicesData[deviceId];
-                        const deviceMatches = {
-                            deviceId: deviceId,
-                            dates: []
-                        };
-    
-                        Object.keys(device).forEach(clientId => {
-                            if (clientId === clientName) {
-                                formattedDates.forEach(date => {
-                                    if (device[clientId][date]) {
-                                        const dateEntry = {
-                                            date: `${date.slice(0, 4)}.${date.slice(4, 6)}.${date.slice(6, 8)}`,
-                                            locations: []
-                                        };
-    
-                                        Object.keys(device[clientId][date]).forEach(() => {
-                                            const entry = device[clientId][date];
-    
-                                            if (selectedLocations.some(location => location.value === entry.location.coordinates)) {
-                                                const sensorData = {
-                                                    ph: [],
-                                                    tds: [],
-                                                    turbidity: []
-                                                };
-    
-                                                // Check if sensor_data exists and extract each sensor type
-                                                if (entry.location.sensor_data) {
-                                                    // Extract PH data
-                                                    if (entry.location.sensor_data.ph) {
-                                                        Object.entries(entry.location.sensor_data.ph).forEach(([timestamp, value]) => {
-                                                            sensorData.ph.push({
-                                                                time: timestamp,
-                                                                value: value
-                                                            });
-                                                        });
-                                                    }
-    
-                                                    // Extract TDS data
-                                                    if (entry.location.sensor_data.tds) {
-                                                        Object.entries(entry.location.sensor_data.tds).forEach(([timestamp, value]) => {
-                                                            sensorData.tds.push({
-                                                                time: timestamp,
-                                                                value: value
-                                                            });
-                                                        });
-                                                    }
-    
-                                                    // Extract Turbidity data
-                                                    if (entry.location.sensor_data.turbidity) {
-                                                        Object.entries(entry.location.sensor_data.turbidity).forEach(([timestamp, value]) => {
-                                                            sensorData.turbidity.push({
-                                                                time: timestamp,
-                                                                value: value
-                                                            });
-                                                        });
-                                                    }
-                                                }
-    
-                                                dateEntry.locations.push({
-                                                    coordinates: entry.location.coordinates,
-                                                    sensorData: sensorData
-                                                });
-                                            }
-                                        });
-    
-                                        // Only add the date if there are matching locations
-                                        if (dateEntry.locations.length > 0) {
-                                            deviceMatches.dates.push(dateEntry);
-                                        }
-                                    }
-                                });
-                            }
-                        });
-    
-                        // Only add the device if there are matching dates
-                        if (deviceMatches.dates.length > 0) {
-                            matchingDevices.push(deviceMatches);
-                        }
-                    });
-    
-                    // Convert matchingDevices to CSV and download
-                    exportToCSV(matchingDevices);
-                } else {
-                    console.log("No data available");
-                }
-            } catch (error) {
-                console.error("Error fetching data:", error);
-                toast.error("Error fetching data.");
+        data.devices.forEach((device) => {
+          device.dates.forEach((dateObj) => {
+            // Add location to the set of unique locations
+            uniqueLocations.add(dateObj.location);
+
+            // Build a map of location to available dates
+            if (!locDateMap[dateObj.location]) {
+              locDateMap[dateObj.location] = new Set();
             }
-        }
-    };
-    
-    // Helper function to convert data to CSV and trigger download
-    const exportToCSV = (data) => {
-        const csvRows = [];
-    
-        // Define headers
-        csvRows.push("Device ID,Date,Coordinates,Coordinates,PH Time,PH Value,TDS Time,TDS Value,Turbidity Time,Turbidity Value");
-    
-        // Loop through data to format each row
-        data.forEach(device => {
-            device.dates.forEach(dateEntry => {
-                dateEntry.locations.forEach(location => {
-                    const { coordinates, sensorData } = location;
-    
-                    // Generate rows for each sensor data type
-                    const maxLength = Math.max(sensorData.ph.length, sensorData.tds.length, sensorData.turbidity.length);
-                    for (let i = 0; i < maxLength; i++) {
-                        const ph = sensorData.ph[i] || { time: "", value: "" };
-                        const tds = sensorData.tds[i] || { time: "", value: "" };
-                        const turbidity = sensorData.turbidity[i] || { time: "", value: "" };
-    
-                        csvRows.push([
-                            device.deviceId,
-                            dateEntry.date,
-                            coordinates,
-                            ph.time, ph.value,
-                            tds.time, tds.value,
-                            turbidity.time, turbidity.value
-                        ].join(","));
-                    }
-                });
-            });
+            locDateMap[dateObj.location].add(dateObj.date);
+          });
         });
-    
-        // Convert rows to a single CSV string
-        const csvContent = csvRows.join("\n");
-        const blob = new Blob([csvContent], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-    
-        // Create a download link and click it programmatically
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = "sensor_data.csv";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
-    
-    return (
-        <Container className="mt-4">
-            <Row className="my-3">
-                <Col>
-                    <label>Select Location(s):</label>
-                    <Select
-                        isMulti
-                        options={locationOptions}
-                        value={selectedLocations}
-                        onChange={handleLocationChange}
-                        placeholder="Select Locations..."
-                    />
-                </Col>
-                <Col>
-                    <label>Select Date(s):</label>
-                    <Select
-                        isMulti
-                        options={dateOptions}
-                        value={selectedDates}
-                        onChange={setSelectedDates}
-                        placeholder="Select Dates..."
-                        isDisabled={selectedLocations.length === 0} // Disable until location is selected
-                    />
-                </Col>
-            </Row>
-            <Button variant="primary" onClick={handleGetData}>Get Data</Button>
-            <ToastContainer />
-        </Container>
+
+        // Set location options for react-select
+        setLocationOptions(
+          Array.from(uniqueLocations).map((location) => ({
+            label: location,
+            value: location,
+          }))
+        );
+
+        // Convert locDateMap date sets to arrays for easy rendering
+        const locDateMapArray = {};
+        Object.keys(locDateMap).forEach((loc) => {
+          locDateMapArray[loc] = Array.from(locDateMap[loc]);
+        });
+        setLocationDateMap(locDateMapArray);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (matchingDevices.length > 0) {
+      runPredictions();
+    }
+  }, [matchingDevices]);
+
+  const handleLocationChange = (selectedOptions) => {
+    setSelectedLocations(selectedOptions);
+
+    if (selectedOptions.length > 0) {
+      // Collect unique dates from selected locations
+      const selectedLocs = selectedOptions.map((option) => option.value);
+      const availableDates = new Set();
+      selectedLocs.forEach((loc) => {
+        locationDateMap[loc]?.forEach((date) => availableDates.add(date));
+      });
+      setDateOptions(
+        Array.from(availableDates).map((date) => ({ label: date, value: date }))
+      );
+    } else {
+      // Clear date options if no location is selected
+      setDateOptions([]);
+      setSelectedDates([]);
+    }
+  };
+
+  const handleGetData = async () => {
+    if (selectedLocations.length === 0) {
+      toast.warning("Please select at least one location.");
+    } else if (selectedDates.length === 0) {
+      toast.warning("Please select at least one date.");
+    } else {
+      // Convert selected dates to YYYYMMDD format
+      const formattedDates = selectedDates.map((date) =>
+        date.value.replace(/-/g, "")
+      );
+
+      const db = getDatabase();
+      const devicesRef = ref(db, "devices");
+
+      try {
+        const snapshot = await get(devicesRef);
+        if (snapshot.exists()) {
+          const devicesData = snapshot.val();
+          const matchingDevices = [];
+
+          // Iterate through devices to find matches
+          Object.keys(devicesData).forEach((deviceId) => {
+            const device = devicesData[deviceId];
+            const deviceMatches = {
+              deviceId: deviceId,
+              dates: [],
+            };
+
+            Object.keys(device).forEach((clientId) => {
+              if (clientId === clientName) {
+                formattedDates.forEach((date) => {
+                  if (device[clientId][date]) {
+                    const dateEntry = {
+                      date: `${date.slice(0, 4)}.${date.slice(
+                        4,
+                        6
+                      )}.${date.slice(6, 8)}`,
+                      locations: [],
+                    };
+
+                    Object.keys(device[clientId][date]).forEach(() => {
+                      const entry = device[clientId][date];
+
+                      if (
+                        selectedLocations.some(
+                          (location) =>
+                            location.value === entry.location.coordinates
+                        )
+                      ) {
+                        const sensorData = {
+                          ph: [],
+                          tds: [],
+                          turbidity: [],
+                        };
+
+                        // Check if sensor_data exists and extract each sensor type
+                        if (entry.location.sensor_data) {
+                          // Extract PH data
+                          if (entry.location.sensor_data.ph) {
+                            Object.entries(
+                              entry.location.sensor_data.ph
+                            ).forEach(([timestamp, value]) => {
+                              sensorData.ph.push({
+                                time: timestamp,
+                                value: value,
+                              });
+                            });
+                          }
+
+                          // Extract TDS data
+                          if (entry.location.sensor_data.tds) {
+                            Object.entries(
+                              entry.location.sensor_data.tds
+                            ).forEach(([timestamp, value]) => {
+                              sensorData.tds.push({
+                                time: timestamp,
+                                value: value,
+                              });
+                            });
+                          }
+
+                          // Extract Turbidity data
+                          if (entry.location.sensor_data.turbidity) {
+                            Object.entries(
+                              entry.location.sensor_data.turbidity
+                            ).forEach(([timestamp, value]) => {
+                              sensorData.turbidity.push({
+                                time: timestamp,
+                                value: value,
+                              });
+                            });
+                          }
+                        }
+
+                        dateEntry.locations.push({
+                          coordinates: entry.location.coordinates,
+                          sensorData: sensorData,
+                        });
+                      }
+                    });
+
+                    // Only add the date if there are matching locations
+                    if (dateEntry.locations.length > 0) {
+                      deviceMatches.dates.push(dateEntry);
+                    }
+                  }
+                });
+              }
+            });
+
+            // Only add the device if there are matching dates
+            if (deviceMatches.dates.length > 0) {
+              matchingDevices.push(deviceMatches);
+            }
+          });
+          setmatchingDevices(matchingDevices);
+          // Convert matchingDevices to CSV and download
+          preprocessData(matchingDevices);
+        } else {
+          console.log("No data available");
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        toast.error("Error fetching data.");
+      }
+    }
+  };
+
+  const CSVexport = () => {
+    if (matchingDevices.length === 0) {
+      toast.warning("No data to export");
+      return;
+    } else {
+      exportToCSV(matchingDevices);
+    }
+  };
+
+  // Helper function to convert data to CSV and trigger download
+  const exportToCSV = (data) => {
+    const csvRows = [];
+
+    // Define headers
+    csvRows.push(
+      "Device ID,Date,Coordinates,Coordinates,PH Time,PH Value,TDS Time,TDS Value,Turbidity Time,Turbidity Value"
     );
-}
+
+    // Loop through data to format each row
+    data.forEach((device) => {
+      device.dates.forEach((dateEntry) => {
+        dateEntry.locations.forEach((location) => {
+          const { coordinates, sensorData } = location;
+
+          // Generate rows for each sensor data type
+          const maxLength = Math.max(
+            sensorData.ph.length,
+            sensorData.tds.length,
+            sensorData.turbidity.length
+          );
+          for (let i = 0; i < maxLength; i++) {
+            const ph = sensorData.ph[i] || { time: "", value: "" };
+            const tds = sensorData.tds[i] || { time: "", value: "" };
+            const turbidity = sensorData.turbidity[i] || {
+              time: "",
+              value: "",
+            };
+
+            csvRows.push(
+              [
+                device.deviceId,
+                dateEntry.date,
+                coordinates,
+                ph.time,
+                ph.value,
+                tds.time,
+                tds.value,
+                turbidity.time,
+                turbidity.value,
+              ].join(",")
+            );
+          }
+        });
+      });
+    });
+
+    // Convert rows to a single CSV string
+    const csvContent = csvRows.join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+
+    // Create a download link and click it programmatically
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "sensor_data.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const preprocessData = (rawData) => {
+    const rows = [];
+    rawData?.forEach((device) => {
+      device.dates?.forEach((date) => {
+        date.locations?.forEach((location) => {
+          location.sensorData.ph?.forEach((ph, index) => {
+            rows.push({
+              deviceId: device.deviceId,
+              date: date.date,
+              coordinates: location.coordinates,
+              ph: ph.value,
+              tds: location.sensorData.tds[index]?.value || 0,
+              turbidity: location.sensorData.turbidity[index]?.value || 0,
+            });
+          });
+        });
+      });
+    });
+    setProcessedData(rows);
+  };
+
+  const runPredictions = async () => {
+    if (processedData.length === 0) {
+      toast.warning("No data to process");
+      return;
+    }
+
+    // Prepare training and testing data
+    const features = processedData.map((d) => [d.ph, d.tds, d.turbidity]);
+    const labels = processedData.map(
+      (d) =>
+        d.ph > 7.5 || d.turbidity > 7
+          ? 2 // Unsafe
+          : d.ph >= 6.5 && d.turbidity >= 3.5
+          ? 1 // Moderate
+          : 0 // Safe
+    );
+
+    // One-hot encode labels
+    const oneHotLabels = tf.oneHot(tf.tensor1d(labels, "int32"), 3);
+
+    // Convert features to tensors
+    const featureTensor = tf.tensor2d(features);
+
+    // Define a neural network model for SVM-like predictions
+    const svmModel = tf.sequential();
+    svmModel.add(
+      tf.layers.dense({
+        inputShape: [features[0].length],
+        units: 3, // 3 output classes: Safe, Moderate, Unsafe
+        activation: "softmax",
+      })
+    );
+    svmModel.compile({
+      optimizer: tf.train.adam(),
+      loss: "categoricalCrossentropy",
+      metrics: ["accuracy"],
+    });
+
+    // Train the SVM-like model
+    await svmModel.fit(featureTensor, oneHotLabels, {
+      epochs: 50,
+      batchSize: 32,
+    });
+
+    // Make predictions
+    const svmPredictions = await svmModel
+      .predict(featureTensor)
+      .argMax(-1)
+      .array();
+    setSvmPredictions(svmPredictions);
+
+    // Define a neural network model for Decision Tree-like predictions
+    const treeModel = tf.sequential();
+    treeModel.add(
+      tf.layers.dense({
+        inputShape: [features[0].length],
+        units: 3, // 3 output classes
+        activation: "softmax",
+      })
+    );
+    treeModel.compile({
+      optimizer: tf.train.adam(),
+      loss: "categoricalCrossentropy",
+      metrics: ["accuracy"],
+    });
+
+    // Train the Decision Tree-like model
+    await treeModel.fit(featureTensor, oneHotLabels, {
+      epochs: 50,
+      batchSize: 32,
+    });
+
+    // Make predictions
+    const treePredictions = await treeModel
+      .predict(featureTensor)
+      .argMax(-1)
+      .array();
+    setTreePredictions(treePredictions);
+
+    toast.success("Data Loaded!");
+  };
+
+  const plotCharts = () => {
+    plotHistograms();
+  };
+
+  const plotHistograms = () => {
+    ["ph", "tds", "turbidity"].forEach((key) => {
+      new Chart(document.getElementById(`${key}-histogram`), {
+        type: "bar",
+        data: {
+          labels: processedData.map((_, i) => i + 1),
+          datasets: [
+            {
+              label: key,
+              data: processedData.map((d) => d[key]),
+            },
+          ],
+        },
+      });
+    });
+  };
+
+  const resetData = () => {
+    if (
+      processedData.length === 0 &&
+      svmPredictions.length === 0 &&
+      treePredictions.length === 0 &&
+      matchingDevices.length === 0
+    ) {
+      toast.warning("No data to reset");
+      return;
+    } else {
+      toast.success("Data reset");
+      setTimeout(() => {
+        window.location.reload();
+      }, 3000);
+    }
+  };
+
+  return (
+    <Container className="mt-4">
+      <Row className="my-3">
+        <Col>
+          <label>Select Location(s):</label>
+          <Select
+            isMulti
+            options={locationOptions}
+            value={selectedLocations}
+            onChange={handleLocationChange}
+            placeholder="Select Locations..."
+          />
+        </Col>
+        <Col>
+          <label>Select Date(s):</label>
+          <Select
+            isMulti
+            options={dateOptions}
+            value={selectedDates}
+            onChange={setSelectedDates}
+            placeholder="Select Dates..."
+            isDisabled={selectedLocations.length === 0} // Disable until location is selected
+          />
+        </Col>
+      </Row>
+      <Row className="mb-2 mx-1">
+        <Button variant="primary" onClick={handleGetData}>
+          Get Data
+        </Button>
+      </Row>
+
+      {matchingDevices.length > 0 && (
+        <Row className="align-items-center justify-content-center">
+          <Col xs={4} className="text-center">
+            <Button onClick={CSVexport} variant="secondary" className="w-100">
+              Download CSV
+            </Button>
+          </Col>
+          <Col xs={4} className="text-center">
+            <Button onClick={plotCharts} variant="secondary" className="w-100">
+              Visualize Results
+            </Button>
+          </Col>
+          <Col xs={4} className="text-center">
+            <Button onClick={resetData} variant="secondary" className="w-100">
+              Reset Data
+            </Button>
+          </Col>
+        </Row>
+      )}
+
+      <Row>
+        <Col>
+          <canvas id="ph-histogram"></canvas>
+        </Col>
+        <Col>
+          <canvas id="tds-histogram"></canvas>
+        </Col>
+        <Col>
+          <canvas id="turbidity-histogram"></canvas>
+        </Col>
+      </Row>
+      <ToastContainer />
+    </Container>
+  );
+};
 
 export default Reports;
