@@ -444,6 +444,7 @@ const Reports = () => {
         ],
       },
     });
+    plotHeatMap();
   };
 
   const plotHistograms = () => {
@@ -463,6 +464,81 @@ const Reports = () => {
     });
   };
 
+  const plotHeatMap = () => {
+    if (!processedData || processedData.length === 0) {
+      toast.warning("No data available for heat map");
+      return;
+    }
+  
+    ["ph", "tds", "turbidity"].forEach((key, index) => {
+      const heatMapData = processedData.map((d, i) => ({
+        x: i + 1, // Sample index
+        y: index + 1, // Row index for sensor type
+        v: d[key], // Sensor value
+      }));
+  
+      const ctx = document.getElementById(`${key}-heatmap`);
+      if (ctx) {
+        new Chart(ctx, {
+          type: "matrix",
+          data: {
+            datasets: [
+              {
+                label: `${key} Heat Map`,
+                data: heatMapData,
+                backgroundColor(ctx) {
+                  const value = ctx.raw.v;
+                  return value > 7
+                    ? "#F44336" // High intensity
+                    : value > 3.5
+                    ? "#FFC107" // Moderate intensity
+                    : "#4CAF50"; // Low intensity
+                },
+                width(ctx) {
+                  return ctx.chart.chartArea ? ctx.chart.chartArea.width / processedData.length : 0;
+                },
+                height(ctx) {
+                  return ctx.chart.chartArea ? ctx.chart.chartArea.height / 3 : 0; // Dividing equally for 3 sensors
+                },
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            scales: {
+              x: {
+                type: "linear",
+                title: { display: true, text: "Sample Index" },
+                min: 1,
+                max: processedData.length,
+              },
+              y: {
+                type: "linear",
+                ticks: {
+                  callback(value) {
+                    return ["ph", "tds", "turbidity"][value - 1]; // Map row index to sensor type
+                  },
+                },
+                title: { display: true, text: "Sensor Type" },
+              },
+            },
+            plugins: {
+              tooltip: {
+                callbacks: {
+                  label(ctx) {
+                    return `Value: ${ctx.raw.v}`;
+                  },
+                },
+              },
+            },
+          },
+        });
+      } else {
+        console.error(`Canvas with ID ${key}-heatmap not found.`);
+      }
+    });
+  };
+  
   const resetData = () => {
     if (
       processedData.length === 0 &&
@@ -551,6 +627,19 @@ const Reports = () => {
         </Col>
         <Col>
           <canvas id="turbidity-histogram"></canvas>
+        </Col>
+      </Row>
+
+      <Row className="mt-3">
+        <p className="items-center">Heat Maps of Sensor Data</p>
+        <Col>
+          <canvas id="ph-heatmap"></canvas>
+        </Col>
+        <Col>
+          <canvas id="tds-heatmap"></canvas>
+        </Col>
+        <Col>
+          <canvas id="turbidity-heatmap"></canvas>
         </Col>
       </Row>
 
