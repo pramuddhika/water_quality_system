@@ -394,6 +394,56 @@ const Reports = () => {
 
   const plotCharts = () => {
     plotHistograms();
+    if (svmPredictions.length === 0 || treePredictions.length === 0) {
+      toast.warning("No data to visualize");
+      return;
+    }
+
+    // Count predictions for SVM
+    const svmCounts = { Safe: 0, Moderate: 0, Unsafe: 0 };
+    svmPredictions.forEach((p) => {
+      if (p === 0) svmCounts.Safe++;
+      else if (p === 1) svmCounts.Moderate++;
+      else if (p === 2) svmCounts.Unsafe++;
+    });
+
+    // Plot SVM predictions
+    new Chart(document.getElementById("svmChart"), {
+      type: "bar",
+      data: {
+        labels: Object.keys(svmCounts),
+        datasets: [
+          {
+            label: "SVM Predictions",
+            data: Object.values(svmCounts),
+            backgroundColor: ["#4CAF50", "#FFC107", "#F44336"],
+          },
+        ],
+      },
+    });
+
+    // Count predictions for Decision Tree
+    const treeCounts = { Safe: 0, Moderate: 0, Unsafe: 0 };
+    treePredictions.forEach((p) => {
+      if (p === 0) treeCounts.Safe++;
+      else if (p === 1) treeCounts.Moderate++;
+      else if (p === 2) treeCounts.Unsafe++;
+    });
+
+    // Plot Decision Tree predictions
+    new Chart(document.getElementById("treeChart"), {
+      type: "bar",
+      data: {
+        labels: Object.keys(treeCounts),
+        datasets: [
+          {
+            label: "Decision Tree Predictions",
+            data: Object.values(treeCounts),
+            backgroundColor: ["#4CAF50", "#FFC107", "#F44336"],
+          },
+        ],
+      },
+    });
   };
 
   const plotHistograms = () => {
@@ -481,7 +531,18 @@ const Reports = () => {
         </Row>
       )}
 
-      <Row>
+      <Row className="mt-3">
+        <p className="items-center">ML Model water quality</p>
+        <Col>
+          <canvas id="svmChart"></canvas>
+        </Col>
+        <Col>
+          <canvas id="treeChart"></canvas>
+        </Col>
+      </Row>
+
+      <Row className="mt-3">
+        <p className="items-center">Histograms of Sensor Data</p>
         <Col>
           <canvas id="ph-histogram"></canvas>
         </Col>
@@ -492,6 +553,7 @@ const Reports = () => {
           <canvas id="turbidity-histogram"></canvas>
         </Col>
       </Row>
+
       <ToastContainer />
     </Container>
   );
