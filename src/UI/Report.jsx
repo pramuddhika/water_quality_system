@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import Select from "react-select";
-import { Button, Container, Row, Col } from "react-bootstrap";
+import { Button, Container, Row, Col, Table } from "react-bootstrap";
 import { ToastContainer, toast } from "react-toastify";
 import { getDatabase, ref, get } from "firebase/database";
 import "react-toastify/dist/ReactToastify.css";
@@ -20,6 +20,7 @@ const Reports = () => {
   const [svmPredictions, setSvmPredictions] = useState([]);
   const [treePredictions, setTreePredictions] = useState([]);
   const [matchingDevices, setmatchingDevices] = useState([]);
+  const [statistics, setStatistics] = useState(null);
   Chart.register(MatrixController, MatrixElement);
 
   useEffect(() => {
@@ -445,6 +446,7 @@ const Reports = () => {
       },
     });
     plotHeatMap();
+    calculateStatistics();
   };
 
   const plotHistograms = () => {
@@ -469,14 +471,14 @@ const Reports = () => {
       toast.warning("No data available for heat map");
       return;
     }
-  
+
     ["ph", "tds", "turbidity"].forEach((key, index) => {
       const heatMapData = processedData.map((d, i) => ({
         x: i + 1, // Sample index
         y: index + 1, // Row index for sensor type
         v: d[key], // Sensor value
       }));
-  
+
       const ctx = document.getElementById(`${key}-heatmap`);
       if (ctx) {
         new Chart(ctx, {
@@ -495,10 +497,14 @@ const Reports = () => {
                     : "#4CAF50"; // Low intensity
                 },
                 width(ctx) {
-                  return ctx.chart.chartArea ? ctx.chart.chartArea.width / processedData.length : 0;
+                  return ctx.chart.chartArea
+                    ? ctx.chart.chartArea.width / processedData.length
+                    : 0;
                 },
                 height(ctx) {
-                  return ctx.chart.chartArea ? ctx.chart.chartArea.height / 3 : 0; // Dividing equally for 3 sensors
+                  return ctx.chart.chartArea
+                    ? ctx.chart.chartArea.height / 3
+                    : 0; // Dividing equally for 3 sensors
                 },
               },
             ],
@@ -538,7 +544,7 @@ const Reports = () => {
       }
     });
   };
-  
+
   const resetData = () => {
     if (
       processedData.length === 0 &&
@@ -554,6 +560,46 @@ const Reports = () => {
         window.location.reload();
       }, 3000);
     }
+  };
+
+  const calculateStatistics = () => {
+    const sensorKeys = ["ph", "tds", "turbidity"];
+    const stats = sensorKeys.map((key) => {
+      const values = processedData.map((data) => data[key]).filter(Boolean);
+      if (values.length === 0) return { key, stats: null };
+      const sortedValues = [...values].sort((a, b) => a - b);
+      const sum = values.reduce((acc, val) => acc + val, 0);
+      const mean = sum / values.length;
+      const std =
+        Math.sqrt(
+          values.reduce((acc, val) => acc + (val - mean) ** 2, 0) /
+            values.length
+        ) || 0;
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+      const median =
+        sortedValues.length % 2 === 0
+          ? (sortedValues[sortedValues.length / 2 - 1] +
+              sortedValues[sortedValues.length / 2]) /
+            2
+          : sortedValues[Math.floor(sortedValues.length / 2)];
+      const q25 = sortedValues[Math.floor(sortedValues.length * 0.25)];
+      const q75 = sortedValues[Math.floor(sortedValues.length * 0.75)];
+      return {
+        key,
+        stats: {
+          count: values.length,
+          mean: mean.toFixed(2),
+          std: std.toFixed(2),
+          min,
+          q25,
+          median,
+          q75,
+          max,
+        },
+      };
+    });
+    setStatistics(stats);
   };
 
   return (
@@ -642,6 +688,52 @@ const Reports = () => {
           <canvas id="turbidity-heatmap"></canvas>
         </Col>
       </Row>
+
+      {statistics && (
+        <Row className="mt-4">
+          <Col>
+            <h4>Sensor Data Summary</h4>
+            <Table striped bordered hover>
+              <thead>
+                <tr>
+                  <th>Sensor</th>
+                  <th>Count</th>
+                  <th>Mean</th>
+                  <th>Std</th>
+                  <th>Min</th>
+                  <th>25%</th>
+                  <th>50%</th>
+                  <th>75%</th>
+                  <th>Max</th>
+                </tr>
+              </thead>
+              <tbody>
+                {statistics.map(({ key, stats }) => (
+                  <tr key={key}>
+                    <td>{key}</td>
+                    {stats ? (
+                      <>
+                        <td>{stats.count}</td>
+                        <td>{stats.mean}</td>
+                        <td>{stats.std}</td>
+                        <td>{stats.min}</td>
+                        <td>{stats.q25}</td>
+                        <td>{stats.median}</td>
+                        <td>{stats.q75}</td>
+                        <td>{stats.max}</td>
+                      </>
+                    ) : (
+                      <td colSpan="8" className="text-center">
+                        No Data
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </Col>
+        </Row>
+      )}
 
       <ToastContainer />
     </Container>
