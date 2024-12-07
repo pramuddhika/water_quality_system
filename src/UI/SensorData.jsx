@@ -63,7 +63,7 @@ const SensorData = () => {
       }
     };
     fetchDevices();
-  }, [currentUser.username]);
+  }, []);
 
   const handleViewLocation = (coordinates) => {
     const parsedLocation = parseCoordinates(coordinates);

@@ -21,6 +21,8 @@ const Reports = () => {
   const [treePredictions, setTreePredictions] = useState([]);
   const [matchingDevices, setmatchingDevices] = useState([]);
   const [statistics, setStatistics] = useState(null);
+  const [accuracies, setAccuracies] = useState({ svm: 0, tree: 0, knn: 0 });
+
   Chart.register(MatrixController, MatrixElement);
 
   useEffect(() => {
@@ -316,7 +318,7 @@ const Reports = () => {
       toast.warning("No data to process");
       return;
     }
-
+  
     // Prepare training and testing data
     const features = processedData.map((d) => [d.ph, d.tds, d.turbidity]);
     const labels = processedData.map(
@@ -327,19 +329,25 @@ const Reports = () => {
           ? 1 // Moderate
           : 0 // Safe
     );
-
+  
     // One-hot encode labels
     const oneHotLabels = tf.oneHot(tf.tensor1d(labels, "int32"), 3);
-
+  
     // Convert features to tensors
     const featureTensor = tf.tensor2d(features);
-
-    // Define a neural network model for SVM-like predictions
+  
+    const results = {
+      SVM: { predictions: [], accuracy: 0 },
+      DecisionTree: { predictions: [], accuracy: 0 },
+      KNN: { predictions: [], accuracy: 0 },
+    };
+  
+    // Train SVM model
     const svmModel = tf.sequential();
     svmModel.add(
       tf.layers.dense({
         inputShape: [features[0].length],
-        units: 3, // 3 output classes: Safe, Moderate, Unsafe
+        units: 3,
         activation: "softmax",
       })
     );
@@ -348,26 +356,22 @@ const Reports = () => {
       loss: "categoricalCrossentropy",
       metrics: ["accuracy"],
     });
-
-    // Train the SVM-like model
-    await svmModel.fit(featureTensor, oneHotLabels, {
+    const svmHistory = await svmModel.fit(featureTensor, oneHotLabels, {
       epochs: 50,
       batchSize: 32,
     });
-
-    // Make predictions
-    const svmPredictions = await svmModel
+    results.SVM.predictions = await svmModel
       .predict(featureTensor)
       .argMax(-1)
       .array();
-    setSvmPredictions(svmPredictions);
-
-    // Define a neural network model for Decision Tree-like predictions
+    results.SVM.accuracy = svmHistory.history.acc[svmHistory.epoch.length - 1];
+  
+    // Train Decision Tree model
     const treeModel = tf.sequential();
     treeModel.add(
       tf.layers.dense({
         inputShape: [features[0].length],
-        units: 3, // 3 output classes
+        units: 3,
         activation: "softmax",
       })
     );
@@ -376,74 +380,79 @@ const Reports = () => {
       loss: "categoricalCrossentropy",
       metrics: ["accuracy"],
     });
-
-    // Train the Decision Tree-like model
-    await treeModel.fit(featureTensor, oneHotLabels, {
+    const treeHistory = await treeModel.fit(featureTensor, oneHotLabels, {
       epochs: 50,
       batchSize: 32,
     });
-
-    // Make predictions
-    const treePredictions = await treeModel
+    results.DecisionTree.predictions = await treeModel
       .predict(featureTensor)
       .argMax(-1)
       .array();
-    setTreePredictions(treePredictions);
+    results.DecisionTree.accuracy =
+      treeHistory.history.acc[treeHistory.epoch.length - 1];
+  
+    setSvmPredictions(results.SVM.predictions);
+    setTreePredictions(results.DecisionTree.predictions);
 
+    setAccuracies({
+      svm: results.SVM.accuracy,
+      tree: results.DecisionTree.accuracy,
+    });
+  
     toast.success("Data Loaded!");
   };
+  
 
   const plotCharts = () => {
     plotHistograms();
-    if (svmPredictions.length === 0 || treePredictions.length === 0) {
+    if (
+      svmPredictions.length === 0 ||
+      treePredictions.length === 0
+    ) {
       toast.warning("No data to visualize");
       return;
     }
 
-    // Count predictions for SVM
-    const svmCounts = { Safe: 0, Moderate: 0, Unsafe: 0 };
-    svmPredictions.forEach((p) => {
-      if (p === 0) svmCounts.Safe++;
-      else if (p === 1) svmCounts.Moderate++;
-      else if (p === 2) svmCounts.Unsafe++;
-    });
-
-    // Plot SVM predictions
-    new Chart(document.getElementById("svmChart"), {
-      type: "bar",
-      data: {
-        labels: Object.keys(svmCounts),
-        datasets: [
-          {
-            label: "SVM Predictions",
-            data: Object.values(svmCounts),
-            backgroundColor: ["#4CAF50", "#FFC107", "#F44336"],
-          },
-        ],
+    const chartConfigs = [
+      {
+        id: "svmChart",
+        title: "SVM Predictions",
+        predictions: svmPredictions,
+        accuracy: accuracies.svm,
       },
-    });
+      {
+        id: "treeChart",
+        title: "Decision Tree Predictions",
+        predictions: treePredictions,
+        accuracy: accuracies.tree,
+      } 
+    ];
 
-    // Count predictions for Decision Tree
-    const treeCounts = { Safe: 0, Moderate: 0, Unsafe: 0 };
-    treePredictions.forEach((p) => {
-      if (p === 0) treeCounts.Safe++;
-      else if (p === 1) treeCounts.Moderate++;
-      else if (p === 2) treeCounts.Unsafe++;
-    });
+    chartConfigs.forEach(({ id, title, predictions, accuracy }) => {
+      const counts = { Safe: 0, Moderate: 0, Unsafe: 0 };
+      predictions.forEach((p) => {
+        if (p === 0) counts.Safe++;
+        else if (p === 1) counts.Moderate++;
+        else if (p === 2) counts.Unsafe++;
+      });
 
-    // Plot Decision Tree predictions
-    new Chart(document.getElementById("treeChart"), {
-      type: "bar",
-      data: {
-        labels: Object.keys(treeCounts),
-        datasets: [
-          {
-            label: "Decision Tree Predictions",
-            data: Object.values(treeCounts),
-            backgroundColor: ["#4CAF50", "#FFC107", "#F44336"],
-          },
-        ],
-      },
+      new Chart(document.getElementById(id), {
+        type: "bar",
+        data: {
+          labels: Object.keys(counts),
+          datasets: [
+            {
+              label: title,
+              data: Object.values(counts),
+              backgroundColor: ["#4CAF50", "#FFC107", "#F44336"],
+            },
+          ],
+        },
+      });
+
+      document.getElementById(`${id}Accuracy`).textContent = `Accuracy: ${(
+        accuracy * 100
+      ).toFixed(2)}%`;
     });
     plotHeatMap();
     calculateStatistics();
@@ -654,12 +663,13 @@ const Reports = () => {
       )}
 
       <Row className="mt-3">
-        <p className="items-center">ML Model water quality</p>
         <Col>
           <canvas id="svmChart"></canvas>
+          <p id="svmChartAccuracy"></p>
         </Col>
         <Col>
           <canvas id="treeChart"></canvas>
+          <p id="treeChartAccuracy"></p>
         </Col>
       </Row>
 

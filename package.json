@@ -17,6 +17,7 @@
     "@emotion/styled": "^11.13.0",
     "@heroicons/react": "^2.1.5",
     "@mui/material": "^6.1.4",
+    "@tensorflow-models/knn-classifier": "^1.2.6",
     "@tensorflow/tfjs": "^4.22.0",
     "bootstrap": "^5.3.3",
     "chart.js": "^4.4.6",

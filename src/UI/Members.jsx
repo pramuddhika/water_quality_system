@@ -190,7 +190,6 @@ const Members = () => {
               >
                 <option>Client</option>
                 <option>Admin</option>
-                <option>Member</option>
               </select>
             </div>
             <div className="mb-3">
