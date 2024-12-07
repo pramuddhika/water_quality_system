@@ -617,8 +617,9 @@ const Reports = () => {
 
   return (
     <Container className="mt-4">
+      {/* Filter Section */}
       <Row className="my-3">
-        <Col>
+        <Col xs={12} md={6} className="mb-3 mb-md-0">
           <label>Select Location(s):</label>
           <Select
             isMulti
@@ -628,7 +629,7 @@ const Reports = () => {
             placeholder="Select Locations..."
           />
         </Col>
-        <Col>
+        <Col xs={12} md={6}>
           <label>Select Date(s):</label>
           <Select
             isMulti
@@ -640,25 +641,30 @@ const Reports = () => {
           />
         </Col>
       </Row>
-      <Row className="mb-2 mx-1">
-        <Button variant="primary" onClick={handleGetData}>
-          Get Data
-        </Button>
+
+      {/* Get Data Button */}
+      <Row className="mb-3">
+        <Col className="text-center">
+          <Button variant="primary" onClick={handleGetData}>
+            Get Data
+          </Button>
+        </Col>
       </Row>
 
+      {/* Actions Section */}
       {matchingDevices.length > 0 && (
-        <Row className="align-items-center justify-content-center">
-          <Col xs={4} className="text-center">
+        <Row className="mb-4 text-center">
+          <Col xs={12} md={4} className="mb-3 mb-md-0">
             <Button onClick={CSVexport} variant="secondary" className="w-100">
               Download CSV
             </Button>
           </Col>
-          <Col xs={4} className="text-center">
+          <Col xs={12} md={4} className="mb-3 mb-md-0">
             <Button onClick={plotCharts} variant="secondary" className="w-100">
               Visualize Results
             </Button>
           </Col>
-          <Col xs={4} className="text-center">
+          <Col xs={12} md={4}>
             <Button onClick={resetData} variant="secondary" className="w-100">
               Reset Data
             </Button>
@@ -666,52 +672,58 @@ const Reports = () => {
         </Row>
       )}
 
+      {/* Visualization Section */}
       {visualizeClicked && (
         <>
           <Row className="mt-3">
-            <Col>
+            <Col xs={12} md={6} className="mb-3 mb-md-0">
               <canvas id="svmChart"></canvas>
               <p id="svmChartAccuracy"></p>
             </Col>
-            <Col>
+            <Col xs={12} md={6}>
               <canvas id="treeChart"></canvas>
               <p id="treeChartAccuracy"></p>
             </Col>
           </Row>
 
           <Row className="mt-3">
-            <p className="items-center">Histograms of Sensor Data</p>
-            <Col>
+            <Col xs={12}>
+              <p className="text-center">Histograms of Sensor Data</p>
+            </Col>
+            <Col xs={12} md={4} className="mb-3 mb-md-0">
               <canvas id="ph-histogram"></canvas>
             </Col>
-            <Col>
+            <Col xs={12} md={4} className="mb-3 mb-md-0">
               <canvas id="tds-histogram"></canvas>
             </Col>
-            <Col>
+            <Col xs={12} md={4}>
               <canvas id="turbidity-histogram"></canvas>
             </Col>
           </Row>
 
           <Row className="mt-3">
-            <p className="items-center">Heat Maps of Sensor Data</p>
-            <Col>
+            <Col xs={12}>
+              <p className="text-center">Heat Maps of Sensor Data</p>
+            </Col>
+            <Col xs={12} md={4} className="mb-3 mb-md-0">
               <canvas id="ph-heatmap"></canvas>
             </Col>
-            <Col>
+            <Col xs={12} md={4} className="mb-3 mb-md-0">
               <canvas id="tds-heatmap"></canvas>
             </Col>
-            <Col>
+            <Col xs={12} md={4}>
               <canvas id="turbidity-heatmap"></canvas>
             </Col>
           </Row>
         </>
       )}
 
+      {/* Statistics Section */}
       {statistics && (
         <Row className="mt-4">
-          <Col>
-            <h4>Sensor Data Summary</h4>
-            <Table striped bordered hover>
+          <Col xs={12}>
+            <h4 className="text-center mb-3">Sensor Data Summary</h4>
+            <Table striped bordered hover responsive>
               <thead>
                 <tr>
                   <th>Sensor</th>

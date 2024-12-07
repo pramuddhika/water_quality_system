@@ -89,32 +89,32 @@ const Members = () => {
   }, []);
 
   return (
-    <div>
-      <div className="flex justify-between">
+    <div className="p-4">
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <div>
-          <h3 className="text-start font-semibold text-xl">
-            Member Management
-          </h3>
+          <h3 className="text-start font-semibold text-xl">Member Management</h3>
           <p>Be sure to manage your members correctly.</p>
         </div>
-        <div>
+        <div className="mt-4 sm:mt-0">
           <button
-            className="bg-sky-600 hover:bg-sky-900 text-white font-bold py-2 px-4 rounded"
+            className="bg-sky-600 hover:bg-sky-900 text-white font-bold py-2 px-4 rounded w-full sm:w-auto"
             onClick={handleShow}
           >
             Add Member
           </button>
         </div>
       </div>
-
-      <div className="mt-10">
-        <table className="table-auto border min-w-full">
+  
+      {/* Table Section */}
+      <div className="mt-10 overflow-x-auto">
+        <table className="table-auto border w-full">
           <thead className="bg-gray-200">
             <tr>
-              <th className="px-4 py-2 w-64 border">User Name</th>
-              <th className="px-4 py-2 w-48 border">Role</th>
-              <th className="px-4 py-2 w-48 border">Status</th>
-              <th className="px-4 py-2 w-48 border">Action</th>
+              <th className="px-4 py-2 w-1/4 border">User Name</th>
+              <th className="px-4 py-2 w-1/4 border">Role</th>
+              <th className="px-4 py-2 w-1/4 border">Status</th>
+              <th className="px-4 py-2 w-1/4 border">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -126,7 +126,7 @@ const Members = () => {
                   <td className="border px-4 py-2">{member.status}</td>
                   <td className="border px-4 py-2 text-center">
                     <button
-                      className="bg-lime-600 hover:bg-lime-800 text-white font-bold py-2 px-4 rounded"
+                      className="bg-lime-600 hover:bg-lime-800 text-white font-bold py-1 px-3 rounded"
                       onClick={() => handleEdit(member)}
                     >
                       Edit
@@ -144,7 +144,7 @@ const Members = () => {
           </tbody>
         </table>
       </div>
-
+  
       {/* Add Member Modal */}
       <Modal show={showModal} onHide={handleClose} centered>
         <Modal.Header closeButton>
@@ -217,7 +217,7 @@ const Members = () => {
           </Button>
         </Modal.Footer>
       </Modal>
-
+  
       {/* Edit Member Modal */}
       <Modal show={showEditModal} onHide={handleClose} centered>
         <Modal.Header closeButton>
@@ -279,6 +279,7 @@ const Members = () => {
       </Modal>
     </div>
   );
+  
 };
 
 export default Members;

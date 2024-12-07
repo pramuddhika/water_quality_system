@@ -72,8 +72,10 @@ const Dashboard = () => {
   return (
     <Container className="mt-12">
       <ToastContainer />
+      
+      {/* First Row with Total Devices and Total Clients */}
       <Row className="mb-4">
-        <Col md={6}>
+        <Col xs={12} sm={6} lg={6}>
           <Card
             className="text-center shadow-lg"
             style={{ backgroundColor: "#f8f9fa", borderColor: "#6c757d" }}
@@ -81,14 +83,14 @@ const Dashboard = () => {
             <Card.Body>
               <Card.Title
                 className="text-primary"
-                style={{ fontSize: "2rem", fontWeight: "bold" }}
+                style={{ fontSize: "1.5rem", fontWeight: "bold" }}
               >
                 Total Devices
               </Card.Title>
               <Card.Text
                 className="fs-1 text-success"
                 style={{
-                  fontSize: "3rem",
+                  fontSize: "2.5rem",
                   fontWeight: "700",
                   textShadow: "1px 1px 2px rgba(0, 0, 0, 0.2)",
                 }}
@@ -98,7 +100,8 @@ const Dashboard = () => {
             </Card.Body>
           </Card>
         </Col>
-        <Col md={6}>
+        
+        <Col xs={12} sm={6} lg={6}>
           <Card
             className="text-center shadow-lg"
             style={{ backgroundColor: "#f8f9fa", borderColor: "#6c757d" }}
@@ -106,14 +109,14 @@ const Dashboard = () => {
             <Card.Body>
               <Card.Title
                 className="text-primary"
-                style={{ fontSize: "2rem", fontWeight: "bold" }}
+                style={{ fontSize: "1.5rem", fontWeight: "bold" }}
               >
                 Total Clients
               </Card.Title>
               <Card.Text
                 className="fs-1 text-success"
                 style={{
-                  fontSize: "3rem",
+                  fontSize: "2.5rem",
                   fontWeight: "700",
                   textShadow: "1px 1px 2px rgba(0, 0, 0, 0.2)",
                 }}
@@ -124,8 +127,10 @@ const Dashboard = () => {
           </Card>
         </Col>
       </Row>
+      
+      {/* Second Row with Active Clients and Inactive Clients */}
       <Row className="mb-4">
-        <Col md={6}>
+        <Col xs={12} sm={6} lg={6}>
           <Card
             className="text-center shadow-lg"
             style={{ backgroundColor: "#f8f9fa", borderColor: "#6c757d" }}
@@ -133,14 +138,14 @@ const Dashboard = () => {
             <Card.Body>
               <Card.Title
                 className="text-primary"
-                style={{ fontSize: "2rem", fontWeight: "bold" }}
+                style={{ fontSize: "1.5rem", fontWeight: "bold" }}
               >
                 Active Clients
               </Card.Title>
               <Card.Text
                 className="fs-1 text-success"
                 style={{
-                  fontSize: "3rem",
+                  fontSize: "2.5rem",
                   fontWeight: "700",
                   textShadow: "1px 1px 2px rgba(0, 0, 0, 0.2)",
                 }}
@@ -150,7 +155,8 @@ const Dashboard = () => {
             </Card.Body>
           </Card>
         </Col>
-        <Col md={6}>
+        
+        <Col xs={12} sm={6} lg={6}>
           <Card
             className="text-center shadow-lg"
             style={{ backgroundColor: "#f8f9fa", borderColor: "#6c757d" }}
@@ -158,14 +164,14 @@ const Dashboard = () => {
             <Card.Body>
               <Card.Title
                 className="text-primary"
-                style={{ fontSize: "2rem", fontWeight: "bold" }}
+                style={{ fontSize: "1.5rem", fontWeight: "bold" }}
               >
                 Inactive Clients
               </Card.Title>
               <Card.Text
                 className="fs-1 text-success"
                 style={{
-                  fontSize: "3rem",
+                  fontSize: "2.5rem",
                   fontWeight: "700",
                   textShadow: "1px 1px 2px rgba(0, 0, 0, 0.2)",
                 }}
@@ -178,6 +184,7 @@ const Dashboard = () => {
       </Row>
     </Container>
   );
+  
 };
 
 export default Dashboard;

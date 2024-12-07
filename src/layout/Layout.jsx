@@ -1,6 +1,7 @@
 import { Outlet,useLocation } from 'react-router-dom';
 import TopBar from './TopBar';
 import SideNav from './SideNav';
+import { useState } from 'react';
 
 const Layout = () => {
   const location = useLocation();
@@ -22,19 +23,46 @@ const Layout = () => {
     title = 'Client Data';
   }
 
+  const [isSideNavOpen, setIsSideNavOpen] = useState(false);
+
+  const toggleSideNav = () => {
+    setIsSideNavOpen(!isSideNavOpen);
+  };
+
   return (
     <div className="flex h-screen">
-      <div className="w-[180px] ">
-        <SideNav />
-      </div>
-      
-      <div className="flex-1">
-        <TopBar title={title} className="h-[60px]"/>
-        <div className="p-2">
-          <Outlet />
-        </div>
+    {/* Sidebar */}
+    <div
+      className={`absolute md:relative z-20 w-[180px] bg-white transition-transform transform ${
+        isSideNavOpen ? "translate-x-0" : "-translate-x-full"
+      } md:translate-x-0`}
+    >
+      <SideNav />
+    </div>
+
+    {/* Main Content */}
+    <div className="flex-1">
+      {/* TopBar */}
+      <TopBar
+        title={title}
+        className="h-[60px]"
+        toggleSideNav={toggleSideNav}
+      />
+
+      {/* Main Area */}
+      <div className="p-2">
+        <Outlet />
       </div>
     </div>
+
+    {/* Overlay for mobile when side nav is open */}
+    {isSideNavOpen && (
+      <div
+        className="fixed inset-0 bg-black z-10 md:hidden"
+        onClick={toggleSideNav}
+      ></div>
+    )}
+  </div>
   );
 };
 

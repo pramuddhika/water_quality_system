@@ -217,71 +217,88 @@ const ClientData = () => {
     <Container className="mt-4">
       <ToastContainer />
       <Row>
-        <Form>
-          <div className="flex items-center gap-2">
-            <Form.Group controlId="clientSelect" className="mb-3 col-6">
-              <Form.Label>Select Client</Form.Label>
-              <Form.Control
-                as="select"
-                value={selectedClient}
-                onChange={handleClientChange}
-              >
-                <option value="">-- Select a Client --</option>
-                {clients.map((client, index) => (
-                  <option key={index} value={client}>
-                    {client}
-                  </option>
-                ))}
-              </Form.Control>
-            </Form.Group>
-            <Button
-              variant="primary"
-              className="mb-3 mt-8"
-              onClick={fetchLocationsAndDates}
-              disabled={!selectedClient}
-            >
-              Get Locations and Dates
-            </Button>
-          </div>
+        <Col xs={12}>
+          <Form>
+            {/* Client Selection */}
+            <Row className="mb-3">
+              <Col xs={12} md={8}>
+                <Form.Group controlId="clientSelect">
+                  <Form.Label>Select Client</Form.Label>
+                  <Form.Control
+                    as="select"
+                    value={selectedClient}
+                    onChange={handleClientChange}
+                  >
+                    <option value="">-- Select a Client --</option>
+                    {clients.map((client, index) => (
+                      <option key={index} value={client}>
+                        {client}
+                      </option>
+                    ))}
+                  </Form.Control>
+                </Form.Group>
+              </Col>
+              <Col xs={12} md={4} className="d-flex align-items-end">
+                <Button
+                  variant="primary"
+                  onClick={fetchLocationsAndDates}
+                  disabled={!selectedClient}
+                  className="w-100"
+                >
+                  Get Locations and Dates
+                </Button>
+              </Col>
+            </Row>
 
-          <div className="flex gap-2">
-            <Form.Group controlId="locationSelect" className="mb-3 col-6">
-              <Form.Label>Select Location(s)</Form.Label>
-              <Select
-                isMulti
-                options={locations.map((location) => ({
-                  value: location,
-                  label: location,
-                }))}
-                value={selectedLocations}
-                onChange={handleLocationChange}
-                isDisabled={locations.length === 0}
-              />
-            </Form.Group>
-            <Form.Group controlId="dateSelect" className="mb-3 col-6">
-              <Form.Label>Select Date(s)</Form.Label>
-              <Select
-                isMulti
-                options={dates.map((date) => ({
-                  value: date,
-                  label: date,
-                }))}
-                value={selectedDates}
-                onChange={handleDateChange}
-                isDisabled={dates.length === 0}
-              />
-            </Form.Group>
-          </div>
-          <div className="flex justify-center">
-            <Button
-              variant="primary"
-              onClick={handleGetData}
-              disabled={!selectedClient}
-            >
-              Download CSV
-            </Button>
-          </div>
-        </Form>
+            {/* Location and Date Selection */}
+            <Row className="mb-3">
+              <Col xs={12} md={6}>
+                <Form.Group controlId="locationSelect">
+                  <Form.Label>Select Location(s)</Form.Label>
+                  <Select
+                    isMulti
+                    options={locations.map((location) => ({
+                      value: location,
+                      label: location,
+                    }))}
+                    value={selectedLocations}
+                    onChange={handleLocationChange}
+                    isDisabled={locations.length === 0}
+                  />
+                </Form.Group>
+              </Col>
+              <Col xs={12} md={6}>
+                <Form.Group controlId="dateSelect">
+                  <Form.Label>Select Date(s)</Form.Label>
+                  <Select
+                    isMulti
+                    options={dates.map((date) => ({
+                      value: date,
+                      label: date,
+                    }))}
+                    value={selectedDates}
+                    onChange={handleDateChange}
+                    isDisabled={dates.length === 0}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            {/* Action Buttons */}
+            <Row className="justify-content-center">
+              <Col xs={12} md={6} className="text-center">
+                <Button
+                  variant="primary"
+                  onClick={handleGetData}
+                  disabled={!selectedClient}
+                  className="w-100"
+                >
+                  Download CSV
+                </Button>
+              </Col>
+            </Row>
+          </Form>
+        </Col>
       </Row>
     </Container>
   );

@@ -72,13 +72,14 @@ const SensorData = () => {
   };
 
   return (
-    <div>
-      <div className="flex items-center gap-5 mt-4">
-        <p className="font-bold ml-3">Your devices list</p>
+    <div className="p-4">
+      {/* Devices List Section */}
+      <div className="flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-5 mt-4">
+        <p className="font-bold ml-1 md:ml-3">Your devices list</p>
         <input
           type="text"
           id="deviceName"
-          className="border border-gray-200 rounded-lg p-2 w-[800px] mt-1 focus:outline-none"
+          className="border border-gray-200 rounded-lg p-2 w-full md:w-[800px] mt-1 focus:outline-none"
           placeholder={
             devices.length > 0
               ? devices.map(device => `${device.deviceId}`).join(" | ")
@@ -89,10 +90,11 @@ const SensorData = () => {
         />
       </div>
 
+      {/* Device Usage Summary Section */}
       <div className="mt-10">
         <p className="font-bold mb-3">Device Usage Summary</p>
-        <div className="table-responsive">
-          <Table bordered striped hover>
+        <div className="overflow-x-auto">
+          <Table bordered striped hover className="min-w-[600px]">
             <thead className="bg-gray-200">
               <tr>
                 <th>Device Id</th>
@@ -106,11 +108,11 @@ const SensorData = () => {
                   <tr key={`${device.deviceId}-${date.date}`}>
                     <td>{device.deviceId}</td>
                     <td>{date.date}</td>
-                    <td className="flex justify-between">
+                    <td className="flex justify-between items-center">
                       {date.location}
                       <button
                         onClick={() => handleViewLocation(date.location)}
-                        className="text-end ml-2"
+                        className="ml-2 text-blue-500 hover:text-blue-700"
                       >
                         <i className="bi bi-eye"></i>
                       </button>
@@ -123,22 +125,25 @@ const SensorData = () => {
         </div>
       </div>
 
+      {/* Modal for Location */}
       <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
         <Modal.Header closeButton>
           <Modal.Title>Device Location</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <MapContainer
-            center={[location.lat, location.lon]}
-            zoom={13}
-            style={{ height: "400px", width: "100%" }}
-          >
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a>'
-            />
-            <Marker position={[location.lat, location.lon]} />
-          </MapContainer>
+          <div className="w-full h-[300px] md:h-[400px]">
+            <MapContainer
+              center={[location.lat, location.lon]}
+              zoom={13}
+              style={{ height: "100%", width: "100%" }}
+            >
+              <TileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a>'
+              />
+              <Marker position={[location.lat, location.lon]} />
+            </MapContainer>
+          </div>
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowModal(false)}>

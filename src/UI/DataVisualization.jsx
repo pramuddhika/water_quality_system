@@ -278,8 +278,9 @@ const DataVisualization = () => {
 
   return (
     <Container className="mt-4">
+      {/* Filter Section */}
       <Row className="my-3">
-        <Col>
+        <Col xs={12} md={6} className="mb-3 mb-md-0">
           <label>Select Location(s):</label>
           <Select
             isMulti
@@ -289,7 +290,7 @@ const DataVisualization = () => {
             placeholder="Select Locations..."
           />
         </Col>
-        <Col>
+        <Col xs={12} md={6}>
           <label>Select Date(s):</label>
           <Select
             isMulti
@@ -301,15 +302,23 @@ const DataVisualization = () => {
           />
         </Col>
       </Row>
-      <Button variant="primary" onClick={handleGetData}>
-        Get Data
-      </Button>
 
+      {/* Get Data Button */}
+      <Row className="mb-4">
+        <Col className="text-center">
+          <Button variant="primary" onClick={handleGetData}>
+            Get Data
+          </Button>
+        </Col>
+      </Row>
+
+      {/* Data Display Section */}
       {data && (
         <>
+          {/* Overall Sensor Summary */}
           <Row className="mt-5">
-            <Col md={6}>
-              <h4 className="mb-3 font-bold text-4xl">
+            <Col xs={12} lg={6} className="mb-4 mb-lg-0">
+              <h4 className="mb-3 font-bold text-xl lg:text-2xl">
                 Overall Sensor Summary
               </h4>
               <div className="flex items-center justify-center">
@@ -323,26 +332,31 @@ const DataVisualization = () => {
                   <p className="mb-4">
                     <strong>Average TDS:</strong> {overallStats.tds}
                   </p>
-                  <p className="">
-                    <strong>Average Turbidity:</strong> {overallStats.turbidity}
+                  <p>
+                    <strong>Average Turbidity:</strong>{" "}
+                    {overallStats.turbidity}
                   </p>
                 </div>
               </div>
             </Col>
 
-            <Col md={6}>
-              <h4>pH Levels Over Time</h4>
+            {/* pH Chart */}
+            <Col xs={12} lg={6}>
+              <h4 className="text-center text-lg lg:text-xl">pH Levels Over Time</h4>
               {renderSensorChart("ph")}
             </Col>
           </Row>
 
+          {/* Other Charts */}
           <Row className="mt-5">
-            <Col md={6}>
-              <h4>TDS Levels Over Time</h4>
+            <Col xs={12} lg={6} className="mb-4 mb-lg-0">
+              <h4 className="text-center text-lg lg:text-xl">TDS Levels Over Time</h4>
               {renderSensorChart("tds")}
             </Col>
-            <Col md={6}>
-              <h4>Turbidity Levels Over Time</h4>
+            <Col xs={12} lg={6}>
+              <h4 className="text-center text-lg lg:text-xl">
+                Turbidity Levels Over Time
+              </h4>
               {renderSensorChart("turbidity")}
             </Col>
           </Row>
