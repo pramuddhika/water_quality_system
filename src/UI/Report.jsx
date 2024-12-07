@@ -22,6 +22,7 @@ const Reports = () => {
   const [matchingDevices, setmatchingDevices] = useState([]);
   const [statistics, setStatistics] = useState(null);
   const [accuracies, setAccuracies] = useState({ svm: 0, tree: 0, knn: 0 });
+  const [visualizeClicked, setVisualizeClicked] = useState(false);
 
   Chart.register(MatrixController, MatrixElement);
 
@@ -73,6 +74,12 @@ const Reports = () => {
       runPredictions();
     }
   }, [matchingDevices]);
+
+  useEffect(() => {
+    if (visualizeClicked === true) { 
+      plotCharts();
+    }    
+   }, [visualizeClicked]);
 
   const handleLocationChange = (selectedOptions) => {
     setSelectedLocations(selectedOptions);
@@ -318,7 +325,7 @@ const Reports = () => {
       toast.warning("No data to process");
       return;
     }
-  
+
     // Prepare training and testing data
     const features = processedData.map((d) => [d.ph, d.tds, d.turbidity]);
     const labels = processedData.map(
@@ -329,19 +336,19 @@ const Reports = () => {
           ? 1 // Moderate
           : 0 // Safe
     );
-  
+
     // One-hot encode labels
     const oneHotLabels = tf.oneHot(tf.tensor1d(labels, "int32"), 3);
-  
+
     // Convert features to tensors
     const featureTensor = tf.tensor2d(features);
-  
+
     const results = {
       SVM: { predictions: [], accuracy: 0 },
       DecisionTree: { predictions: [], accuracy: 0 },
       KNN: { predictions: [], accuracy: 0 },
     };
-  
+
     // Train SVM model
     const svmModel = tf.sequential();
     svmModel.add(
@@ -365,7 +372,7 @@ const Reports = () => {
       .argMax(-1)
       .array();
     results.SVM.accuracy = svmHistory.history.acc[svmHistory.epoch.length - 1];
-  
+
     // Train Decision Tree model
     const treeModel = tf.sequential();
     treeModel.add(
@@ -390,7 +397,7 @@ const Reports = () => {
       .array();
     results.DecisionTree.accuracy =
       treeHistory.history.acc[treeHistory.epoch.length - 1];
-  
+
     setSvmPredictions(results.SVM.predictions);
     setTreePredictions(results.DecisionTree.predictions);
 
@@ -398,17 +405,14 @@ const Reports = () => {
       svm: results.SVM.accuracy,
       tree: results.DecisionTree.accuracy,
     });
-  
+
     toast.success("Data Loaded!");
   };
-  
 
   const plotCharts = () => {
+    setVisualizeClicked(true);
     plotHistograms();
-    if (
-      svmPredictions.length === 0 ||
-      treePredictions.length === 0
-    ) {
+    if (svmPredictions.length === 0 || treePredictions.length === 0) {
       toast.warning("No data to visualize");
       return;
     }
@@ -425,7 +429,7 @@ const Reports = () => {
         title: "Decision Tree Predictions",
         predictions: treePredictions,
         accuracy: accuracies.tree,
-      } 
+      },
     ];
 
     chartConfigs.forEach(({ id, title, predictions, accuracy }) => {
@@ -662,42 +666,46 @@ const Reports = () => {
         </Row>
       )}
 
-      <Row className="mt-3">
-        <Col>
-          <canvas id="svmChart"></canvas>
-          <p id="svmChartAccuracy"></p>
-        </Col>
-        <Col>
-          <canvas id="treeChart"></canvas>
-          <p id="treeChartAccuracy"></p>
-        </Col>
-      </Row>
+      {visualizeClicked && (
+        <>
+          <Row className="mt-3">
+            <Col>
+              <canvas id="svmChart"></canvas>
+              <p id="svmChartAccuracy"></p>
+            </Col>
+            <Col>
+              <canvas id="treeChart"></canvas>
+              <p id="treeChartAccuracy"></p>
+            </Col>
+          </Row>
 
-      <Row className="mt-3">
-        <p className="items-center">Histograms of Sensor Data</p>
-        <Col>
-          <canvas id="ph-histogram"></canvas>
-        </Col>
-        <Col>
-          <canvas id="tds-histogram"></canvas>
-        </Col>
-        <Col>
-          <canvas id="turbidity-histogram"></canvas>
-        </Col>
-      </Row>
+          <Row className="mt-3">
+            <p className="items-center">Histograms of Sensor Data</p>
+            <Col>
+              <canvas id="ph-histogram"></canvas>
+            </Col>
+            <Col>
+              <canvas id="tds-histogram"></canvas>
+            </Col>
+            <Col>
+              <canvas id="turbidity-histogram"></canvas>
+            </Col>
+          </Row>
 
-      <Row className="mt-3">
-        <p className="items-center">Heat Maps of Sensor Data</p>
-        <Col>
-          <canvas id="ph-heatmap"></canvas>
-        </Col>
-        <Col>
-          <canvas id="tds-heatmap"></canvas>
-        </Col>
-        <Col>
-          <canvas id="turbidity-heatmap"></canvas>
-        </Col>
-      </Row>
+          <Row className="mt-3">
+            <p className="items-center">Heat Maps of Sensor Data</p>
+            <Col>
+              <canvas id="ph-heatmap"></canvas>
+            </Col>
+            <Col>
+              <canvas id="tds-heatmap"></canvas>
+            </Col>
+            <Col>
+              <canvas id="turbidity-heatmap"></canvas>
+            </Col>
+          </Row>
+        </>
+      )}
 
       {statistics && (
         <Row className="mt-4">
