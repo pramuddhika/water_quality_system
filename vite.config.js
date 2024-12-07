@@ -17,7 +17,7 @@ export default defineConfig(() => {
     base: '/water_quality_system/',
     plugins: [react()],
     build: {
-      chunkSizeWarningLimit: 1600,
+      chunkSizeWarningLimit: 3600,
     },
     optimizeDeps: {
       exclude: ['pyodide.asm.js'], // Add the problematic dependency here
